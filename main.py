@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
@@ -619,13 +620,14 @@ def first_last_names(df):
 
 # collect individual game characteristics from each game played:
 def build_fixture(df):
-    # global fixture
+    global fixture
     unique_games = []
     for val in df.index.unique():
         unique_games.append(val)
 
     unique_games = pd.DataFrame(unique_games).drop(columns=[7,8])
     unique_games[4] = unique_games[4].astype(np.datetime64)
+    # unique_games[4] = unique_games[4].datetime.date()
     unique_games.rename(columns={0: 'round_num', 1: 'home_team', 2: 'away_team', 3: 'weekday', 4: 'date', 5: 'start_time', 6: 'stadium'}, inplace=True)
     unique_games.set_index('date', drop=True, inplace=True)
 
@@ -642,24 +644,32 @@ def assign_stadium_weather(weather_urls):
 
 
 # read in dataset of AFL player statistics and format:
-afl = pd.read_csv(r'C:\\Users\\bedmo\\Programming\\AFLsimulation\\AFL\\afl_stats.csv')
-afl2019 = afl.loc[afl.Year == 2019]
+afl = pd.read_csv(r'data/afl_stats.csv')
 afl = afl.loc[afl.Year == 2020].loc[afl.Round != 'EF'].loc[afl.Round != 'PF'].loc[afl.Round != 'SF'].loc[afl.Round != 'QF'].loc[afl.Round != 'GF']
 format_df(afl)
 first_last_names(afl)
 
-# capture the details of when the finals will occur:
-finals = pd.read_csv(r'C:\\Users\\bedmo\\Programming\\AFLsimulation\\AFL\\afl_stats.csv')
-finals = finals.loc[finals.Year==2020].loc[:, ['Round', 'Day', 'Date', 'Start Time']].drop_duplicates()
-finals = finals.loc[finals.Round.str.contains(r'[QESPG]F', regex=True)].reset_index(drop=True)
-finalsser = pd.Series(['QF1', 'PF1', 'EF1', 'SF1', 'QF2', 'GF', 'PF2', 'SF2', 'EF2'])
-finals['Game'] = finalsser
-finals = finals.drop(columns='Round')
-
 # isolate players from each team:
-teams = pd.pivot_table(afl, values=['Height', 'Weight', 'Disposals', 'Goals', 'Tackles', 'Clearances', 'Brownlow_Votes', 'Contested_Possessions'], index=['Team', 'Player', 'First_Name', 'Last_Name'])\
+teams = pd.pivot_table(afl, values=[
+                                    
+       'Height', 'Weight', 'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
+       'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
+       'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
+       'Contested_Possessions', 'Uncontested_Possessions', 'Contested_Marks',
+       'Marks_Inside_50', 'One_Percenters', 'Bounces', 'Goal_Assists'
+
+       ], index=['Team', 'Player', 'First_Name', 'Last_Name'])\
           .reset_index()\
-          .reindex(columns=['Player', 'First_Name', 'Last_Name', 'Team', 'Height', 'Weight', 'Disposals', 'Goals', 'Tackles', 'Clearances', 'Brownlow_Votes', 'Contested_Possessions'])
+          .reindex(columns=[
+                
+       'Player', 'First_Name', 'Last_Name', 'Team', 'Height', 'Weight', 
+       'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
+       'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
+       'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
+       'Contested_Possessions', 'Uncontested_Possessions', 'Contested_Marks',
+       'Marks_Inside_50', 'One_Percenters', 'Bounces', 'Goal_Assists'
+       
+       ]).round(2)
 
 # pivot DF to get access to individual game characteristics:
 pivotafl = afl.loc[afl.Year == 2020].pivot(index=['Round', 'Team', 'Player'], columns='Opposition')\
@@ -687,9 +697,6 @@ stadiums['Current tenant(s)'] = [re.sub(r'\[.+\]', '', vals) for vals in stadium
 stadiums['Current tenant(s)'] = [re.sub(r"([a-z])([A-Z])", r"\1, \2", tenant).split(', ') for tenant in stadiums['Current tenant(s)']]
 stadiums.Capacity = stadiums.Capacity.str.replace(',', '').astype(int)
 stadiums.iat[5,3] = ['Brisbane Lions']
-
-# isolate individual tenants for each Stadium in DF:
-stadteams = stadiums.drop(columns=['City', 'Capacity']).explode('Current tenant(s)').rename(columns={'Current tenant(s)' : 'Tenant'}).replace('Brisbane', 'Brisbane Lions')
 
 # isolate the weather for each Stadium location as a DF:
 weather_urls = {
@@ -724,24 +731,17 @@ weather_mapper = {
     'Dec' : 12
 }
 
-### define Player, Team, Game, and Round functions
+
+### define Player, Team, Game, and Round functions and build season
 # build players using the Player_class:
 def gen_Players(df):    
     for row in df.values:
-        Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11])
+        Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27])
 
 # build teams using the Team_class:
 def gen_Teams(df):    
     for team in df.Team.unique():
         Team(team)
-
-# read in games from fixture as Game objects:
-def gen_Games(df):    
-    for game in df.values:
-        Game(game[0], game[1], game[2], game[3], game[4], game[5])
-    # group games as Round objects:
-    for game in Game.instances:
-        Round(game.round_num, game)
 
 # define how to construct a Stadium object:
 def gen_Stadium(df):
@@ -749,7 +749,20 @@ def gen_Stadium(df):
         Stadium(stadium[0], stadium[1], stadium[2], stadium[3])
     assign_stadium_weather(weather_urls)
 
-# build the datetime structure for the Final objects:
-def gen_Finals(df):
-    for row in df.values:
-        Final(row[3], row[0], row[1], row[2])
+# read in games from fixture as Game objects:
+def gen_Games(df):    
+    for game in df.values:
+        HomeAwayGame(game[0], game[1], game[2], game[3], game[4], game[5])
+    Final._set_finals()
+
+# build all conditions for season:
+def _build_season():    
+    gen_Players(teams)
+    gen_Teams(teams)
+    Team._gen_Rosters()
+    gen_Stadium(stadiums)
+    build_fixture(pivotafl)
+    gen_Games(fixture)
+
+# _build_season()
+# Game._play_season()
