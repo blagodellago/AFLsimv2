@@ -252,7 +252,7 @@ class Stadium:
         self.location = location
         self.capacity = capacity
         # self.tenants = tenants
-        self._weather = None
+        self._weather = pd.DataFrame()
         global stadium_id
         stadium_id += 1
         self.id = stadium_id
@@ -457,7 +457,7 @@ class HomeAwayGame(Game):
             # Round.add_results(self.round_num, self.final_score)
             Team._adjust_percentage(self.home_team)
             Team._adjust_percentage(self.away_team)
-            HomeAwayGame._refresh_ladder()
+            Team._refresh_ladder()
 
 
 class Final(Game):
@@ -764,5 +764,5 @@ def _build_season():
     build_fixture(pivotafl)
     gen_Games(fixture)
 
-# _build_season()
-# Game._play_season()
+_build_season()
+Game._play_season()
