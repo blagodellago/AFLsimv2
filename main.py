@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
-# import re
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
-# from functions import build_fixture, assign_stadium_weather, gen_Players, gen_Teams, gen_Stadiums, gen_Games, _build_season
+from players_teams_fixture import teams, pivotafl
+from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -15,8 +15,9 @@ class InstanceList(list):
                 matches.append(instance)
         return matches
 
-player_id = 0
 # assign a unique ID to each Player instance
+player_id = 0
+
 class Player:
     """Initialize a Player object with 'name' the only required parameter"""
 
@@ -126,8 +127,8 @@ class Player:
             self._weight = weight
 
 
-team_id = 0
 # assign a unique ID to each Team instance
+team_id = 0
 
 class Team:
     """Team objects are initialized with only the team name"""
@@ -232,9 +233,8 @@ class Team:
         self.premiership_points += 2
 
 
-
-stadium_id = 0
 # assign a unique ID to each Stadium instance
+stadium_id = 0
 
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
@@ -252,7 +252,6 @@ class Stadium:
         self.venue = venue
         self.location = location
         self.capacity = capacity
-        # self.tenants = tenants
         self._weather = pd.DataFrame()
         global stadium_id
         stadium_id += 1
@@ -270,6 +269,8 @@ class Stadium:
                 if tenant == team.name:
                     team.home_stadium.append(self)
 
+
+# assign a unique ID to each Game instance
 game_id = 0
 
 class Game:
@@ -282,7 +283,6 @@ class Game:
             if game.final_score == '':
                 game._play_game()
         Final._set_finalists()
-        # return Team.ladder
         print("\n",Team.ladder,"\n")
 
     @classmethod
@@ -370,17 +370,6 @@ class HomeAwayGame(Game):
     _mcg_weight = 0.5
     _stad_lower = 0.3
     _stad_weight = 0.5
-    # ladder = pd.DataFrame({
-    #               'Team' : [team.name for team in Team.instances],
-    #               'Games_Played' : [team.games_played for team in Team.instances],
-    #               'Wins' : [team.wins for team in Team.instances],
-    #               'Losses' : [team.losses for team in Team.instances],
-    #               'Draws' : [team.draws for team in Team.instances],
-    #               'PPoints' : [team.premiership_points for team in Team.instances],
-    #               'Points_For' : [team.points_for for team in Team.instances],
-    #               'Points_Against' : [team.points_against for team in Team.instances],
-    #               'Percentage' : [team.percentage for team in Team.instances]
-    #           }).sort_values(by=['PPoints', 'Percentage'], ascending=False).set_index(pd.RangeIndex(1,19), drop=True)
 
     @classmethod
     def _add_instance(cls, game):
@@ -389,21 +378,6 @@ class HomeAwayGame(Game):
             HomeAwayGame.instances.append(game)
         if game not in HomeAwayGame.fixture:
             HomeAwayGame.fixture.append(f'{game.round_num}: {game}')
-
-    # @classmethod
-    # def _refresh_ladder(cls):
-        # declares how the ladder is updated. Called after each game is played
-        # HomeAwayGame.ladder = pd.DataFrame({
-        #                   'Team' : [team.name for team in Team.instances],
-        #                   'Games_Played' : [team.games_played for team in Team.instances],
-        #                   'Wins' : [team.wins for team in Team.instances],
-        #                   'Losses' : [team.losses for team in Team.instances],
-        #                   'Draws' : [team.draws for team in Team.instances],
-        #                   'PPoints' : [team.premiership_points for team in Team.instances],
-        #                   'Points_For' : [team.points_for for team in Team.instances],
-        #                   'Points_Against' : [team.points_against for team in Team.instances],
-        #                   'Percentage' : [team.percentage for team in Team.instances]
-        #               }).sort_values(by=['PPoints', 'Percentage'], ascending=False).set_index(pd.RangeIndex(1,19), drop=True)
 
     def __init__(self, date, round_num, home_team, away_team, weekday, start_time):
         super().__init__(date, weekday, start_time)
@@ -455,8 +429,7 @@ class HomeAwayGame(Game):
                 Team._draw(self.away_team)
                 self.final_score += f'{self.home_team}: {self.home_score} drew with {self.away_team}: {self.away_score}'
 
-            # update Round.results with the outcome of the match including final scores and update the ladder:
-            # Round.add_results(self.round_num, self.final_score)
+            # update ladder with the outcome of the match including final scores:
             Team._adjust_percentage(self.home_team)
             Team._adjust_percentage(self.away_team)
             Team._refresh_ladder()
@@ -603,3 +576,65 @@ class Final(Game):
     def _play_final(self):
         self._assign_scores()
         self._interpret_scores()
+
+
+
+### define functions, build fixture, and season
+
+# collect individual game characteristics from each game played:
+def build_fixture(df):
+    global fixture
+    unique_games = []
+    for val in df.index.unique():
+        unique_games.append(val)
+
+    unique_games = pd.DataFrame(unique_games).drop(columns=[7,8])
+    unique_games[4] = unique_games[4].astype(np.datetime64)
+    unique_games.rename(columns={0: 'round_num', 1: 'home_team', 2: 'away_team', 3: 'weekday', 4: 'date', 5: 'start_time', 6: 'stadium'}, inplace=True)
+    unique_games.set_index('date', drop=True, inplace=True)
+
+    fixture = unique_games.sort_index().drop_duplicates(subset=['round_num', 'weekday', 'stadium', 'start_time'], keep='first').reset_index().drop(columns='stadium')
+
+# assign dfs containing monthly weather information for each Stadium object: 
+def assign_stadium_weather(weather_urls): 
+    for city,url in weather_urls.items():
+        for ven in Stadium.instances:
+            if ven.location == city:
+                ven._weather = pd.read_html(url, parse_dates=True, skiprows=1, index_col=0, header=0)[0]\
+                                 .rename(weather_mapper, axis=1)\
+                                 .reindex(columns=['Ann',1,2,3,4,5,6,7,8,9,10,11,12])
+
+# build players using the Player_class:
+def gen_Players(df):    
+    for row in df.values:
+        Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27])
+
+# build teams using the Team_class:
+def gen_Teams(df):    
+    for team in df.Team.unique():
+        Team(team)
+
+# define how to construct a Stadium object:
+def gen_Stadiums(df):
+    for stadium in df.values:
+        Stadium(stadium[0], stadium[1], stadium[2], stadium[3])
+    assign_stadium_weather(weather_urls)
+
+# read in games from fixture as Game objects:
+def gen_Games(df):    
+    for game in df.values:
+        HomeAwayGame(game[0], game[1], game[2], game[3], game[4], game[5])
+    Final._set_finals()
+
+# build all conditions for season:
+def _build_season():    
+    gen_Players(teams)
+    gen_Teams(teams)
+    Team._gen_Rosters()
+    gen_Stadiums(stadiums)
+    build_fixture(pivotafl)
+    gen_Games(fixture)
+
+# execute season simulation:
+_build_season()
+Game._play_season()
