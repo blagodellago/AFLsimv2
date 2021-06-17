@@ -1,3 +1,6 @@
+import pandas as pd
+import re
+
 # scrape current afl stadium data and construct DF:
 stadiums = pd.read_html('https://en.wikipedia.org/wiki/List_of_Australian_Football_League_grounds')[0]\
              .drop(index=[14,15], columns=['Image', 'Other/sponsored names', 'State/territory', 'First used'])

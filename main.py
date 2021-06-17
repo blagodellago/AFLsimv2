@@ -1,12 +1,10 @@
 import pandas as pd
 import numpy as np
-import re
+# import re
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
-from players_teams_fixture import teams, pivotafl
-from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
-from functions import build_fixture, assign_stadium_weather, gen_Players, gen_Teams, gen_Stadiums, gen_Games, _build_season
+# from functions import build_fixture, assign_stadium_weather, gen_Players, gen_Teams, gen_Stadiums, gen_Games, _build_season
 
 # build a mechanism for searching through class instances
 class InstanceList(list):

@@ -1,3 +1,9 @@
+from main import InstanceList, Player, Team, Stadium, Game, HomeAwayGame, Final
+from players_teams_fixture import teams, pivotafl
+from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
+import pandas as pd
+import numpy as np
+
 ### define Player, Team, Game, Stadium and Round functions, build fixture and season
 
 # collect individual game characteristics from each game played:
@@ -54,3 +60,6 @@ def _build_season():
     gen_Stadiums(stadiums)
     build_fixture(pivotafl)
     gen_Games(fixture)
+
+_build_season()
+Game._play_season()

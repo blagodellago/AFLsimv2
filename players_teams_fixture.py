@@ -1,3 +1,5 @@
+import pandas as pd
+
 #### Stats for every player in every game of AFL since 2012 ####
 # format columns:
 def format_df(df):
