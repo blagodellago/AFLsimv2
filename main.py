@@ -281,7 +281,8 @@ class Game:
             if game.final_score == '':
                 game._play_game()
         Final._set_finalists()
-        return Team.ladder
+        # return Team.ladder
+        print("\n",Team.ladder,"\n")
 
     @classmethod
     def _play_season(cls):
@@ -526,7 +527,7 @@ class Final(Game):
         [print(f'{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
         sleep(1)
         Final._play_final_round(4)
-        [print(f'\033[1m{str(final.winner).upper()}\033[0m wins the premiership!\n{final.final_score}') for final in Final.instances if final.week_of_finals == 4]
+        [print(f'\n\033[1m{str(final.winner).upper()}\033[0m wins the premiership!\n{final.final_score}') for final in Final.instances if final.week_of_finals == 4]
 
     def __init__(self, final_type, weekday, date, start_time, week_of_finals):
         super().__init__(date, weekday, start_time)
