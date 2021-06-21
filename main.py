@@ -3,8 +3,8 @@ import numpy as np
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
-from players_teams_fixture import teams, pivotafl
-from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
+# from players_teams_fixture import teams, pivotafl
+# from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -23,7 +23,6 @@ class Player:
 
     # class attributes:
     instances = InstanceList()
-    undrafted = InstanceList()
 
     # add players to Player.instances:
     @classmethod
@@ -33,25 +32,15 @@ class Player:
         else:
             pass
 
-    # add players to Player.undrafted:
-    @classmethod
-    def _add_undrafted(cls, player):
-        if player not in cls.undrafted:
-            cls.undrafted.append(player)
-        else:
-            pass
-
-    # remove players from Player.undrafted (when drafted):
-    @classmethod
-    def _remove_undrafted(cls, player):
-        cls.undrafted.remove(player)
-
     # when initializing Player objects they hold 12 attributes:
     def __init__(self, name, first_name=None, last_name=None, team=None, height=None, weight=None, disposals=None, kicks=None, marks=None, handballs=None, goals=None, behinds=None, hit_outs=None, tackles=None, rebounds=None, inside_50s=None, clearances=None, clangers=None, frees_for=None, frees_against=None, brownlow_votes=None, contested_poss=None, uncontested_poss=None, contested_marks=None, marks_inside_50=None, one_percenters=None, bounces=None, goal_assists=None):
         self.name = name
         self.first_name = first_name
         self.last_name = last_name
-        self.team = team
+        for team_instance in Team.instances:
+            if team_instance.name == team:
+                self.team = team_instance
+                team_instance.roster.append(self)
         self.height = height
         self.weight = weight
         self.disposals = disposals
@@ -77,14 +66,15 @@ class Player:
         self.bounces = bounces
         self.goal_assists = goal_assists
         self.ranking_points = round((self.disposals)+(self.kicks*2)+(self.marks*3)+(self.handballs)+(self.goals*10)+(self.behinds*3)+(self.hit_outs*3)+(self.tackles*4)+(self.rebounds*4)+(self.inside_50s*4)+(self.clearances*6)-(self.clangers*4)+(self.frees_for*4)-(self.frees_against*5)+(self.brownlow_votes*20)+(self.contested_poss*4)+(self.uncontested_poss)+(self.contested_marks*8)+(self.marks_inside_50*6)+(self.one_percenters*3)+(self.bounces*2)+(self.goal_assists*8))
+        self.team.ranking_points += self.ranking_points
+
         global player_id
         player_id += 1
         self.id = player_id
         Player._add_instance(self)
-        Player._add_undrafted(self)
 
     def __repr__(self):
-        return self.name
+        return f"{self.first_name} {self.last_name}"
 
     @property
     def name(self):
@@ -156,25 +146,6 @@ class Team:
                           'Percentage' : [team.percentage for team in Team.instances]
                       }).sort_values(by=['PPoints', 'Percentage'], ascending=False).set_index(pd.RangeIndex(1,19), drop=True)
 
-    @classmethod
-    def _get_ranking_points(cls):
-        # generate Team._ranking_points
-        for team in Team.instances:
-            tots = 0
-            for player in Player.instances:
-                if player.team == team.name:
-                    tots += player.ranking_points
-            team.ranking_points = tots
-
-    @classmethod
-    def _gen_Rosters(cls):
-        # draft Player objects to Team objects
-        for player in Player.instances:
-            for team in Team.instances:
-                if player.team == team.name:
-                    team._draft_player(player)
-        Team._get_ranking_points()
-
     def __init__(self, name):
         # defines the various attributes of Team objects
         self.name = name
@@ -188,7 +159,7 @@ class Team:
         self.points_against = 0
         self.percentage = 0
         self.home_stadium = InstanceList()
-        self.ranking_points = None
+        self.ranking_points = 0
 
         global team_id
         team_id += 1
@@ -198,24 +169,17 @@ class Team:
     def __repr__(self):
         return self.name
 
-    def _draft_player(self, player):
-        # defines how a Player object is drafted to a Team object
-        if player in Player.undrafted:
-            Player._remove_undrafted(player)
-            self.roster.append(player)
-            if player.team != self.name:
-                player.team = self.name
-            else:
-                pass
-        else:
-            raise ValueError('Player not able to be drafted')
-        
+    def _gameday_ranking_points(self):
+        gameday_points = []
+        for player in self.roster:
+            gameday_points.append(player.ranking_points)
+        gameday_points.sort()
+        gameday_points = gameday_points[-22:]
 
-    def _delist_player(self, player):
-        # defines what should happen when a player is delisted from a Team object
-        self.roster.remove(player)
-        player.team = ''
-        Player.undrafted.append(player)
+        gameday_ranking_points = 0
+        for val in gameday_points:
+            gameday_ranking_points += val
+        self.ranking_points = gameday_ranking_points
 
     def _adjust_percentage(self):
         # calculate team percentage
@@ -279,9 +243,11 @@ class Game:
 
     @classmethod
     def _play_homeaway_games(cls):
-        for game in HomeAwayGame.instances:
-            if game.final_score == '':
-                game._play_game()
+        # for game in HomeAwayGame.instances:
+        #     if game.final_score == '':
+        #         game._play_game()
+        for rnd in Round.instances:
+            rnd.play_round()
         Final._set_finalists()
         print("\n",Team.ladder,"\n")
 
@@ -323,6 +289,8 @@ class Game:
     def _assign_scores(self):
         # assign random integers weighted in the home team's favor
         if self.rainfall == 0:
+            self.home_team._gameday_ranking_points()
+            self.away_team._gameday_ranking_points()
             self.home_score += round(randint(40,120)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
             self.away_score += round(randint(40,120)*(self.away_team.ranking_points/self.home_team.ranking_points))
         elif self.rainfall < 3:
@@ -366,6 +334,8 @@ class HomeAwayGame(Game):
 
     instances = InstanceList()
     fixture = InstanceList()
+    games_scheduled = InstanceList()
+    games_played = InstanceList()
     _mcg_lower = 0.4
     _mcg_weight = 0.5
     _stad_lower = 0.3
@@ -378,6 +348,8 @@ class HomeAwayGame(Game):
             HomeAwayGame.instances.append(game)
         if game not in HomeAwayGame.fixture:
             HomeAwayGame.fixture.append(f'{game.round_num}: {game}')
+        if game not in HomeAwayGame.games_scheduled:
+            HomeAwayGame.games_scheduled.append(game)
 
     def __init__(self, date, round_num, home_team, away_team, weekday, start_time):
         super().__init__(date, weekday, start_time)
@@ -430,6 +402,8 @@ class HomeAwayGame(Game):
                 self.final_score += f'{self.home_team}: {self.home_score} drew with {self.away_team}: {self.away_score}'
 
             # update ladder with the outcome of the match including final scores:
+            HomeAwayGame.games_scheduled.remove(self)
+            HomeAwayGame.games_played.append(self)
             Team._adjust_percentage(self.home_team)
             Team._adjust_percentage(self.away_team)
             Team._refresh_ladder()
@@ -578,63 +552,33 @@ class Final(Game):
         self._interpret_scores()
 
 
+class Round:
 
-# ### define functions, build fixture, and season
+    instances = InstanceList()
 
-# # collect individual game characteristics from each game played:
-# def build_fixture(df):
-#     global fixture
-#     unique_games = []
-#     for val in df.index.unique():
-#         unique_games.append(val)
+    @classmethod
+    def _add_instance(cls, round):
+        # add Stadium object to Stadium.instances
+        if round not in Round.instances:
+            Round.instances.append(round) 
 
-#     unique_games = pd.DataFrame(unique_games).drop(columns=[7,8])
-#     unique_games[4] = unique_games[4].astype(np.datetime64)
-#     unique_games.rename(columns={0: 'round_num', 1: 'home_team', 2: 'away_team', 3: 'weekday', 4: 'date', 5: 'start_time', 6: 'stadium'}, inplace=True)
-#     unique_games.set_index('date', drop=True, inplace=True)
+    @classmethod        
+    def _assign_rounds(cls):
+        setrounds = set()
+        for games in HomeAwayGame.instances:
+            setrounds.add(games.round_num)
+        for round_num in setrounds:
+            Round(round_num)
 
-#     fixture = unique_games.sort_index().drop_duplicates(subset=['round_num', 'weekday', 'stadium', 'start_time'], keep='first').reset_index().drop(columns='stadium')
+    def __init__(self, round_num):
+        self.round_num = round_num
+        Round._add_instance(self)
 
-# # assign dfs containing monthly weather information for each Stadium object: 
-# def assign_stadium_weather(weather_urls): 
-#     for city,url in weather_urls.items():
-#         for ven in Stadium.instances:
-#             if ven.location == city:
-#                 ven._weather = pd.read_html(url, parse_dates=True, skiprows=1, index_col=0, header=0)[0]\
-#                                  .rename(weather_mapper, axis=1)\
-#                                  .reindex(columns=['Ann',1,2,3,4,5,6,7,8,9,10,11,12])
+    def __repr__(self):
+        return f'Round {self.round_num}'
 
-# # build players using the Player_class:
-# def gen_Players(df):    
-#     for row in df.values:
-#         Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27])
-
-# # build teams using the Team_class:
-# def gen_Teams(df):    
-#     for team in df.Team.unique():
-#         Team(team)
-
-# # define how to construct a Stadium object:
-# def gen_Stadiums(df):
-#     for stadium in df.values:
-#         Stadium(stadium[0], stadium[1], stadium[2], stadium[3])
-#     assign_stadium_weather(weather_urls)
-
-# # read in games from fixture as Game objects:
-# def gen_Games(df):    
-#     for game in df.values:
-#         HomeAwayGame(game[0], game[1], game[2], game[3], game[4], game[5])
-#     Final._set_finals()
-
-# # build all conditions for season:
-# def _build_season():    
-#     gen_Players(teams)
-#     gen_Teams(teams)
-#     Team._gen_Rosters()
-#     gen_Stadiums(stadiums)
-#     build_fixture(pivotafl)
-#     gen_Games(fixture)
-
-# # execute season simulation:
-# _build_season()
-# Game._play_season()
+    def play_round(self):
+        for game in HomeAwayGame.games_scheduled:
+            if game.round_num == self.round_num:
+                game._play_game()
+                self.ladder = Team.ladder

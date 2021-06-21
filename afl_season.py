@@ -1,4 +1,5 @@
 ### define functions, build fixture, and season
+import re
 import pandas as pd
 import numpy as np
 from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
@@ -7,10 +8,25 @@ class Season:
     """Pass a year to initialize a complete season simulation of AFL football,
     based on stats from every player in every game in the 2020 AFL season"""
 
-    afl = pd.read_csv(r'data/afl_stats.csv')
     # read in dataset of AFL player statistics
+    afl = pd.read_csv(r'data/afl_stats.csv')
 
     instances = InstanceList()
+
+    @classmethod
+    def reset_class_instances(cls):
+        Season.afl = pd.read_csv(r'data/afl_stats.csv')
+        Team.instances.clear()
+        Game.instances.clear()
+        HomeAwayGame.games_scheduled.clear()
+        HomeAwayGame.games_played.clear()
+        HomeAwayGame.instances.clear()
+        HomeAwayGame.fixture.clear()
+        Stadium.instances.clear()
+        Final.instances.clear()
+        Player.instances.clear()
+        Round.instances.clear()
+        Team.ladder = None
 
     @classmethod
     def _format_df(cls, df):
@@ -18,6 +34,7 @@ class Season:
         df.columns = [c.replace(' ', '_') for c in df.columns]
         df.columns = [c.replace('(mm)', '') for c in df.columns]
         df.Player = df.Player.str.replace(', ', '_')
+        df.Round = df.Round.astype(str)
         df.Round = df.Round.str.replace('R', '').astype(int)
 
     @classmethod 
@@ -25,8 +42,10 @@ class Season:
         # isolate first and last names of each player
         pattern = r'^([A-Z][a-z]+)_([A-Z][a-z]+)$'
         names = df.Player.str.split(r'_', expand=True).rename({0: 'Last_Name', 1: 'First_Name'}, axis=1)
-        df.insert(df.columns.get_loc('DOB'), 'First_Name', names.First_Name)
-        df.insert(df.columns.get_loc('DOB'), 'Last_Name', names.Last_Name)
+        while df.columns.size != 44:
+            df.insert(df.columns.get_loc('DOB'), 'First_Name', names.First_Name)
+            df.insert(df.columns.get_loc('DOB'), 'Last_Name', names.Last_Name)
+
 
     @classmethod
     def _build_known_fixture(cls, df):
@@ -43,9 +62,11 @@ class Season:
 
     def __init__(self, year):
         # generate data corresponding to the year passed from the class dataset if requested year falls in range of dataset
-        # importlib.reload(sys.modules['AFLclassesClean'])
-        from AFLclassesClean import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
+        Season.reset_class_instances()
         self.year = year
+        for season in Season.instances:
+            if season.year == self.year:
+                Season.instances.remove(season)
         self.teams = Team.instances
         self.hagames = HomeAwayGame.instances
         self.fixture = HomeAwayGame.fixture
@@ -56,15 +77,6 @@ class Season:
         self._data = Season.afl.loc[Season.afl.Year == self.year].loc[Season.afl.Round != 'EF'].loc[Season.afl.Round != 'PF'].loc[Season.afl.Round != 'SF'].loc[Season.afl.Round != 'QF'].loc[Season.afl.Round != 'GF']
         self._create_season_conditions()
         Season.instances.append(self)
-
-    # def _assign_stadium_weather(self, weather_urls): 
-    #     # assign weather information to each Stadium based on location
-    #     for city,url in weather_urls.items():
-    #         for ven in Stadium.instances:
-    #             if ven.location == city:
-    #                 ven._weather = pd.read_html(url, parse_dates=True, skiprows=1, index_col=0, header=0)[0]\
-    #                                 .rename(weather_mapper, axis=1)\
-    #                                 .reindex(columns=['Ann',1,2,3,4,5,6,7,8,9,10,11,12])
 
     def __repr__(self):
         return f'Season: {self.year}'
@@ -104,9 +116,16 @@ class Season:
                     .stack().reset_index()\
                     .set_index(['Round', 'Team', 'Opposition', 'Day', 'Date', 'Start_Time', 'Venue', 'Attendance', 'Rainfall'])
 
-        self._gen_Players(teams)
         self._gen_Teams(teams)
-        Team._gen_Rosters()
+        self._gen_Players(teams)
+        # print(len(Player.instances))
+        for team in Team.instances:
+            for player in team.roster:
+                print(f"{team.name}: {player.name}: {player.ranking_points}")
+        #     print(f"{team.name}: {team.roster}")
+        #     print(team.ranking_points)
+        #     print(len(team.roster))
+        #     print
         self._create_stadiums()
         Season._build_known_fixture(fixturedf)
         self._gen_Games(fixture)
@@ -218,14 +237,46 @@ class Season:
     def play_final_series(self):
         Final._play_final_series()
 
+    def play_season(self):
+        self.play_homeaway_games()
+        self.play_final_series()
+
+
+
 # execute season simulation:
-# _build_season()
-# Game._play_season()
+season2020 = Season(2020)
+season2020.play_season()
+for team in season2020.teams:
+    print(f"{team.name}: {team.ranking_points}")
+
+
+# lenrost2020 = 0
+# for team in season2020.teams:
+#     lenrost2020 += len(team.roster)
+# print(lenrost2020)
+
+# for player in season2020.undrafted:
+#     print(f"{player}: {player.team}")
 
 
 
 
+season2019 = Season(2019)
+season2019.play_season()
+for team in season2019.teams:
+    print(f"{team.name}: {team.ranking_points}")
+# lenrost2019 = 0
+# for team in season2019.teams:
+#     lenrost2019 += len(team.roster)
+# print(lenrost2019)
 
+# for player in season2019.undrafted:
+#     print(f"{player}: {player.team}")
+
+# for team in season2019.teams:
+#     print(f"{team.name}: {team.roster} {len(team.roster)}")
+#     print
+# print(season2019.undrafted)
 
 
 
