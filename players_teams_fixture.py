@@ -47,3 +47,67 @@ teams = pd.pivot_table(afl, values=[
 pivotafl = afl.loc[afl.Year == 2020].pivot(index=['Round', 'Team', 'Player'], columns='Opposition')\
               .stack().reset_index()\
               .set_index(['Round', 'Team', 'Opposition', 'Day', 'Date', 'Start_Time', 'Venue', 'Attendance', 'Rainfall'])
+
+
+              
+# execute season simulation:
+# # print("SEASON 2017")
+# # season2017 = Season(2017)
+# # season2017.play_season()
+
+# # print("SEASON 2016")
+# # season2016 = Season(2016)
+# # season2016.play_season()
+
+# # print("SEASON 2015")
+# # season2015 = Season(2015)
+# # season2015.play_season()
+
+# # print("SEASON 2014")
+# # season2014 = Season(2014)
+# # season2014.play_season()
+
+# # print("SEASON 2013")
+# # season2013 = Season(2013)
+# # season2013.play_season()
+
+# print("SEASON 2012")
+# season2012 = Season(2012)
+# season2012.play_season()
+# print(season2012.players)
+
+
+
+# # for team in season2019.teams:
+# #     print(f"{team.name}: {team.ranking_points}")
+
+
+#     # def randomly_generate_conditions(self):
+#     #     # random player attributes
+#     #     self._first_name = 
+#     #     self._height = 
+#     #     self._weight = 
+#     #     self._disposals = 
+#     #     self._kicks = 
+#     #     self._marks = 
+#     #     self._handballs = 
+#     #     self._goals = 
+#     #     self._behinds = 
+#     #     self._hit_outs = 
+#     #     self._tackles = 
+#     #     self._rebounds = 
+#     #     self._inside_50s = 
+#     #     self._clearances = 
+#     #     self._clangers = 
+#     #     self._frees_for = 
+#     #     self._frees_against = 
+#     #     self._brownlow_votes = 
+#     #     self._contested_poss = 
+#     #     self._uncontested_poss = 
+#     #     self._contested_marks = 
+#     #     self._marks_inside_50 = 
+#     #     self._one_percenters = 
+#     #     self._bounces = 
+#     #     self._goal_assists = 
+
+

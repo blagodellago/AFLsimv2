@@ -3,8 +3,6 @@ import numpy as np
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
-# from players_teams_fixture import teams, pivotafl
-# from stadium_weather import stadiums, stad_mapper, weather_urls, weather_mapper
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
