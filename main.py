@@ -169,6 +169,8 @@ class Team:
 
     def _gameday_ranking_points(self):
         gameday_points = []
+        # gameday_players = []
+        # player_attrs = {}
         for player in self.roster:
             gameday_points.append(player.ranking_points)
         gameday_points.sort()
@@ -464,16 +466,24 @@ class Final(Game):
     def _play_final_series(cls):
         # how the entire Final series is played
         Final._play_final_round(1)
-        [print(f'{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
-        sleep(1)
+        print()
+        print()
+        print("---------------------------------------------------------------------------------------------------------------")
+        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
+        sleep(2)
         Final._play_final_round(2)
-        [print(f'{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
-        sleep(1)       
+        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
+        sleep(2)       
         Final._play_final_round(3)
-        [print(f'{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
-        sleep(1)
+        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
+        print("---------------------------------------------------------------------------------------------------------------")
+        sleep(2)
         Final._play_final_round(4)
-        [print(f'\n\033[1m{str(final.winner).upper()}\033[0m wins the premiership!\n{final.final_score}') for final in Final.instances if final.week_of_finals == 4]
+        [print(f'\n\n\n\033[1m                                         {str(final.winner).upper()}\033[0m wins the premiership!\n                                         ({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
+        print()
+        print()
+        sleep(5)
+
 
     def __init__(self, final_type, weekday, date, start_time, week_of_finals):
         super().__init__(date, weekday, start_time)
