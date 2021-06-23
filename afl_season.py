@@ -77,10 +77,11 @@ class Season:
 
         os.system('cls' if os.name == 'nt' else 'clear')
         print()
+        print("**************************************************************************************github.com/blagodellago**")
+        print("*****************************WELCOME TO THE AFL SEASON SIMULATOR***********************************************")
         print("***************************************************************************************************************")
-        print("*****************************Welcome to the AFL Season Simulator*****************github.com/blagodellago*******")
         print()
-        print(f"-- Simulating the magnificent Season {self.year}...")
+        print(f"Simulating the magnificent Season {self.year}...")
         print()
 
         if self.year in [2012,2013,2014,2015,2016,2017,2018,2019,2020]:

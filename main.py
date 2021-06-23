@@ -63,9 +63,82 @@ class Player:
         self.one_percenters = one_percenters
         self.bounces = bounces
         self.goal_assists = goal_assists
-        self.ranking_points = round((self.disposals)+(self.kicks*2)+(self.marks*3)+(self.handballs)+(self.goals*10)+(self.behinds*3)+(self.hit_outs*3)+(self.tackles*4)+(self.rebounds*4)+(self.inside_50s*4)+(self.clearances*6)-(self.clangers*4)+(self.frees_for*4)-(self.frees_against*5)+(self.brownlow_votes*20)+(self.contested_poss*4)+(self.uncontested_poss)+(self.contested_marks*8)+(self.marks_inside_50*6)+(self.one_percenters*3)+(self.bounces*2)+(self.goal_assists*8))
-        self.team.ranking_points += self.ranking_points
+        self.ranking_points = round(
+            (self.disposals)+
+            (self.kicks*2)+
+            (self.marks*3)+
+            (self.handballs)+
+            (self.goals*10)+
+            (self.behinds*3)+
+            (self.hit_outs*3)+
+            (self.tackles*5)+
+            (self.rebounds*3)+
+            (self.inside_50s*4)+
+            (self.clearances*6)-
+            (self.clangers*4)+
+            (self.frees_for*4)-
+            (self.frees_against*5)+
+            (self.brownlow_votes*20)+
+            (self.contested_poss*4)+
+            (self.uncontested_poss)+
+            (self.contested_marks*8)+
+            (self.marks_inside_50*6)+
+            (self.one_percenters*3)+
+            (self.bounces*2)+
+            (self.goal_assists*8)
+        )
 
+        # self.attribute_constraints = {
+        #     self.disposals : [3,40],
+        #     self.kicks : [0,28],
+        #     self.marks : [0,20],
+        #     self.handballs : [0,30],
+        #     self.goals : [0,10],
+        #     self.behinds : [0,8],
+        #     self.hit_outs : [0,50],
+        #     self.tackles : [0,17],
+        #     self.rebounds : [0,14],
+        #     self.inside_50s : [0,12],
+        #     self.clearances : [0,17],
+        #     self.clangers : [0,10],
+        #     self.frees_for : [0,6],
+        #     self.frees_against : [0,6],
+        #     self.brownlow_votes : [0,3],
+        #     self.contested_poss : [0,30],
+        #     self.uncontested_poss : [0,35],
+        #     self.contested_marks : [0,10],
+        #     self.marks_inside_50 : [0,10],
+        #     self.one_percenters : [0,20],
+        #     self.bounces : [0,10],
+        #     self.goal_assists : [0,6]
+        # }
+
+        self.team.roster_ranking_points += self.ranking_points
+        self.attributes = {
+                    'kicks' : self.kicks,
+                    'marks' : self.marks,
+                    'handballs' : self.handballs,
+                    'goals' : self.goals,
+                    'behinds' : self.behinds,
+                    'hit_outs' : self.hit_outs,
+                    'tackles' : self.tackles,
+                    'rebounds' : self.rebounds,
+                    'inside_50s' : self.inside_50s,
+                    'clearances' : self.clearances,
+                    'clangers' : self.clangers,
+                    'frees_for' : self.frees_for,
+                    'frees_against' : self.frees_against,
+                    'brownlow_votes' : self.brownlow_votes,
+                    'contested_poss' : self.contested_poss,
+                    'uncontested_poss' : self.uncontested_poss,
+                    'contested_marks' : self.contested_marks,
+                    'marks_inside_50' : self.marks_inside_50,
+                    'one_percenters' : self.one_percenters,
+                    'bounces' : self.bounces,
+                    'goal_assists' : self.goal_assists
+        }
+
+        self.gameday_stats = {}
         global player_id
         player_id += 1
         self.id = player_id
@@ -157,7 +230,32 @@ class Team:
         self.points_against = 0
         self.percentage = 0
         self.home_stadium = InstanceList()
+        self.roster_ranking_points = 0
         self.ranking_points = 0
+
+        self.attribute_constraints = {
+            'kicks' : [0,25],
+            'marks' : [0,20],
+            'handballs' : [0,30],
+            'goals' : [0,10],
+            'behinds' : [0,8],
+            'hit_outs' : [0,50],
+            'tackles' : [0,17],
+            'rebounds' : [0,14],
+            'inside_50s' : [0,12],
+            'clearances' : [0,17],
+            'clangers' : [0,10],
+            'frees_for' : [0,6],
+            'frees_against' : [0,6],
+            'brownlow_votes' : [0,3],
+            'contested_poss' : [0,30],
+            'uncontested_poss' : [0,35],
+            'contested_marks' : [0,10],
+            'marks_inside_50' : [0,10],
+            'one_percenters' : [0,20],
+            'bounces' : [0,10],
+            'goal_assists' : [0,6]
+        }
 
         global team_id
         team_id += 1
@@ -167,19 +265,44 @@ class Team:
     def __repr__(self):
         return self.name
 
+    # assign team gameday ranking points based on their 22 highest ranked players
     def _gameday_ranking_points(self):
-        gameday_points = []
-        # gameday_players = []
-        # player_attrs = {}
+        gameday_player_ranking_points = {}
         for player in self.roster:
-            gameday_points.append(player.ranking_points)
-        gameday_points.sort()
-        gameday_points = gameday_points[-22:]
+            gameday_player_ranking_points[player] = player.ranking_points
+
+        gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1])
+        gameday_points_dict = dict(gameday_points_list)
+
+        self.best_22 = {}
+        counter = 0
+        while counter <= 23:
+            for player,points in reversed(gameday_points_dict.items()):
+                self.best_22[player] = points
+                counter += 1
+
 
         gameday_ranking_points = 0
-        for val in gameday_points:
+        for val in self.best_22.values():
             gameday_ranking_points += val
         self.ranking_points = gameday_ranking_points
+        self._gameday_player_points()
+
+    # use player attributes to generate gameday statistics
+    def _gameday_player_points(self):
+        player_dict = {}
+        for player in self.best_22.keys():
+            player_dict[player] = player.attributes
+
+        player_stats = {}
+        for player,attrs in player_dict.items():
+            for attr,val in attrs.items():
+                for attribute,constraints in self.attribute_constraints.items():
+                    if attribute == attr:
+                        player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
+
+            player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
+            print(f'{player}\n\t{player.gameday_stats}')
 
     def _adjust_percentage(self):
         # calculate team percentage
@@ -287,10 +410,12 @@ class Game:
         pass
 
     def _assign_scores(self):
+        # generate ranking points for each teams' best 22
+        self.home_team._gameday_ranking_points()
+        self.away_team._gameday_ranking_points()
+
         # assign random integers weighted in the home team's favor
         if self.rainfall == 0:
-            self.home_team._gameday_ranking_points()
-            self.away_team._gameday_ranking_points()
             self.home_score += round(randint(40,120)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
             self.away_score += round(randint(40,120)*(self.away_team.ranking_points/self.home_team.ranking_points))
         elif self.rainfall < 3:
@@ -326,6 +451,8 @@ class Game:
                     self.attendance = round(triangular(stad.capacity*self._mcg_lower, stad.capacity, stad.capacity*self._mcg_weight))
                 else:
                     self.attendance = round(triangular(stad.capacity*self._stad_lower, stad.capacity, stad.capacity*self._stad_weight))
+
+    def _gen_stats(self):
 
 
 
