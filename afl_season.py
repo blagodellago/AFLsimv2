@@ -47,19 +47,6 @@ class Season:
             df.insert(df.columns.get_loc('DOB'), 'First_Name', names.First_Name)
             df.insert(df.columns.get_loc('DOB'), 'Last_Name', names.Last_Name)
 
-    @classmethod
-    def _build_known_fixture(cls, df):
-        # build fixture for in class dataset
-        global fixture
-        unique_games = []
-        for val in df.index.unique():
-            unique_games.append(val)
-        unique_games = pd.DataFrame(unique_games).drop(columns=[7,8])
-        unique_games[4] = unique_games[4].astype(np.datetime64)
-        unique_games.rename(columns={0: 'round_num', 1: 'home_team', 2: 'away_team', 3: 'weekday', 4: 'date', 5: 'start_time', 6: 'stadium'}, inplace=True)
-        unique_games.set_index('date', drop=True, inplace=True)
-        fixture = unique_games.sort_index().drop_duplicates(subset=['round_num', 'weekday', 'stadium', 'start_time'], keep='first').reset_index().drop(columns='stadium')
-
     def __init__(self, year):
         # generate data corresponding to the year passed from the class dataset if requested year falls in range of dataset
         Season.reset_class_instances()
@@ -86,7 +73,7 @@ class Season:
 
         if self.year in [2012,2013,2014,2015,2016,2017,2018,2019,2020]:
             self._data = Season.afl.loc[Season.afl.Year == self.year].loc[Season.afl.Round != 'EF'].loc[Season.afl.Round != 'PF'].loc[Season.afl.Round != 'SF'].loc[Season.afl.Round != 'QF'].loc[Season.afl.Round != 'GF']
-            self._create_season_conditions()
+            self._build_known_fixture()
         elif self.year >= 2021:
             self._build_future_fixture(self.year)
         Season.instances.append(self)
@@ -101,7 +88,7 @@ class Season:
     def ladder(self):
         return Team.ladder
 
-    def _create_season_conditions(self):
+    def _build_known_fixture(self):
         # create players and teams based on the year specified
         Season._format_df(self._data)
         Season._first_last_names(self._data)
@@ -136,7 +123,16 @@ class Season:
         self._gen_Teams(teams)
         self._gen_Players(teams)
         self._create_stadiums()
-        Season._build_known_fixture(fixturedf)
+
+        unique_games = []
+        for val in fixturedf.index.unique():
+            unique_games.append(val)
+        unique_games = pd.DataFrame(unique_games).drop(columns=[7,8])
+        unique_games[4] = unique_games[4].astype(np.datetime64)
+        unique_games.rename(columns={0: 'round_num', 1: 'home_team', 2: 'away_team', 3: 'weekday', 4: 'date', 5: 'start_time', 6: 'stadium'}, inplace=True)
+        unique_games.set_index('date', drop=True, inplace=True)
+        fixture = unique_games.sort_index().drop_duplicates(subset=['round_num', 'weekday', 'stadium', 'start_time'], keep='first').reset_index().drop(columns='stadium')
+
         self._gen_Games(fixture)
         Round._assign_rounds()
 
@@ -218,21 +214,16 @@ class Season:
             if counter in [12,13,14]:
                 for day,times in timeslots.items():
                     if day == 'Friday':
-                        # print('Friday')
-                        # print(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times)
+                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times)
                         tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        # print('Saturday')
-                        # print(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], tmstmp.strftime('%A'), times[2])
                         tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        # print('Sunday')
-                        # print(tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], tmstmp.strftime('%A'), times[2])
 
 
                 counter += 1
@@ -241,26 +232,18 @@ class Season:
             else:
                 for day,times in timeslots.items():
                     if day == 'Thursday':
-                        # print("thursday")
-                        # print(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times)
                         tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Friday':
-                        # print('Friday')
-                        # print(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times)
                         tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        # print('Saturday')
-                        # print(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], tmstmp.strftime('%A'), times[1])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], tmstmp.strftime('%A'), times[2])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], tmstmp.strftime('%A'), times[3])
                         tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        # print('Sunday')
-                        # print(tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[6], df.away_team[6], tmstmp.strftime('%A'), times[0])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], tmstmp.strftime('%A'), times[1])
                         HomeAwayGame(tmstmp, df.round_num[0], df.home_team[8], df.away_team[8], tmstmp.strftime('%A'), times[2])
@@ -328,7 +311,6 @@ class Season:
             'Nov' : 11,
             'Dec' : 12
         }       
-        # self._assign_stadium_weather(weather_urls)
 
         # assign weather information to each Stadium based on location
         for city,url in weather_urls.items():
@@ -361,7 +343,6 @@ class Season:
 
     def play_homeaway_games(self):
         Game._play_homeaway_games()
-        self._ladder = Team.ladder
 
     def play_round(self, round_num):
         for rounds in Round.instances:
@@ -369,9 +350,9 @@ class Season:
                 Round.play_round(rounds)
 
     def round_ladder(self, round_num):
-        for rounds in Round.instances:
-            if rounds.round_num == round_num:
-                rounds._round_ladder()        
+        for rnd in self.rounds:
+            if rnd.round_num == round_num:
+                print(rnd.ladder)
 
     def play_final_series(self):
         Final._play_final_series()
@@ -383,5 +364,6 @@ class Season:
 
 
 # execute season simulation:
-season2020 = Season(2020)
+season2020 = Season(2021)
 season2020.play_season()
+

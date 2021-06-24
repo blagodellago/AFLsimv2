@@ -13,11 +13,11 @@ class InstanceList(list):
                 matches.append(instance)
         return matches
 
-# assign a unique ID to each Player instance
-player_id = 0
-
 class Player:
     """Initialize a Player object with 'name' the only required parameter"""
+
+    # assign a unique ID to each Player instance
+    player_id = 1
 
     # class attributes:
     instances = InstanceList()
@@ -88,31 +88,6 @@ class Player:
             (self.goal_assists*8)
         )
 
-        # self.attribute_constraints = {
-        #     self.disposals : [3,40],
-        #     self.kicks : [0,28],
-        #     self.marks : [0,20],
-        #     self.handballs : [0,30],
-        #     self.goals : [0,10],
-        #     self.behinds : [0,8],
-        #     self.hit_outs : [0,50],
-        #     self.tackles : [0,17],
-        #     self.rebounds : [0,14],
-        #     self.inside_50s : [0,12],
-        #     self.clearances : [0,17],
-        #     self.clangers : [0,10],
-        #     self.frees_for : [0,6],
-        #     self.frees_against : [0,6],
-        #     self.brownlow_votes : [0,3],
-        #     self.contested_poss : [0,30],
-        #     self.uncontested_poss : [0,35],
-        #     self.contested_marks : [0,10],
-        #     self.marks_inside_50 : [0,10],
-        #     self.one_percenters : [0,20],
-        #     self.bounces : [0,10],
-        #     self.goal_assists : [0,6]
-        # }
-
         self.team.roster_ranking_points += self.ranking_points
         self.attributes = {
                     'kicks' : self.kicks,
@@ -139,9 +114,8 @@ class Player:
         }
 
         self.gameday_stats = {}
-        global player_id
-        player_id += 1
-        self.id = player_id
+        self.id = Player.player_id
+        Player.player_id += 1
         Player._add_instance(self)
 
     def __repr__(self):
@@ -187,12 +161,12 @@ class Player:
         else:
             self._weight = weight
 
-
-# assign a unique ID to each Team instance
-team_id = 0
-
 class Team:
     """Team objects are initialized with only the team name"""
+
+    # assign a unique ID to each Team instance
+    team_id = 1
+
     instances = InstanceList()
     ladder = None
 
@@ -257,9 +231,8 @@ class Team:
             'goal_assists' : [0,6]
         }
 
-        global team_id
-        team_id += 1
-        self.id = team_id
+        self.id = Team.team_id
+        Team.team_id += 1
         Team._add_instance(self)
 
     def __repr__(self):
@@ -302,7 +275,6 @@ class Team:
                         player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
 
             player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
-            print(f'{player}\n\t{player.gameday_stats}')
 
     def _adjust_percentage(self):
         # calculate team percentage
@@ -319,12 +291,12 @@ class Team:
         self.draws += 1
         self.premiership_points += 2
 
-
-# assign a unique ID to each Stadium instance
-stadium_id = 0
-
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
+
+    # assign a unique ID to each Stadium instance
+    stadium_id = 0
+
     instances = InstanceList()
 
     @classmethod
@@ -340,9 +312,8 @@ class Stadium:
         self.location = location
         self.capacity = capacity
         self._weather = pd.DataFrame()
-        global stadium_id
-        stadium_id += 1
-        self.id = stadium_id
+        self.id = Stadium.stadium_id
+        Stadium.stadium_id += 1
         self._assign_home_stadium(tenants)
         Stadium._add_instance(self)
 
@@ -357,21 +328,20 @@ class Stadium:
                     team.home_stadium.append(self)
 
 
-# assign a unique ID to each Game instance
-game_id = 0
-
 class Game:
     """define the parent Game class that HomeAwayGames and FinalGames will inherit from"""
+    
+    # assign a unique ID to each Game instance
+    game_id = 0
+
     instances = InstanceList()
 
     @classmethod
     def _play_homeaway_games(cls):
-        # for game in HomeAwayGame.instances:
-        #     if game.final_score == '':
-        #         game._play_game()
         for rnd in Round.instances:
             rnd.play_round()
         Final._set_finalists()
+        Team._refresh_ladder()
         print("\n",Team.ladder,"\n")
 
     @classmethod
@@ -383,9 +353,8 @@ class Game:
         self.date = pd.to_datetime(date).date()
         self.weekday = weekday
         self.start_time = start_time
-        global game_id
-        game_id += 1
-        self.id = game_id
+        self.id = Game.game_id
+        Game.game_id += 1
 
         self.home_team = None
         self.away_team = None
@@ -397,6 +366,55 @@ class Game:
         self.home_score = 0
         self.away_score = 0
         self.final_score = ''
+        self.home_team_stats = {
+            'kicks' : 0,
+            'marks' : 0,
+            'handballs' : 0,
+            'goals' : 0,
+            'behinds' : 0,
+            'hit_outs' : 0,
+            'tackles' : 0,
+            'rebounds' : 0,
+            'inside_50s' : 0,
+            'clearances' : 0,
+            'clangers' : 0,
+            'frees_for' : 0,
+            'frees_against' : 0,
+            'brownlow_votes' : 0,
+            'contested_poss' : 0,
+            'uncontested_poss' : 0,
+            'contested_marks' : 0,
+            'marks_inside_50' : 0,
+            'one_percenters' : 0,
+            'bounces' : 0,
+            'goal_assists' : 0,
+            'disposals' : 0
+        }
+
+        self.away_team_stats = {
+            'kicks' : 0,
+            'marks' : 0,
+            'handballs' : 0,
+            'goals' : 0,
+            'behinds' : 0,
+            'hit_outs' : 0,
+            'tackles' : 0,
+            'rebounds' : 0,
+            'inside_50s' : 0,
+            'clearances' : 0,
+            'clangers' : 0,
+            'frees_for' : 0,
+            'frees_against' : 0,
+            'brownlow_votes' : 0,
+            'contested_poss' : 0,
+            'uncontested_poss' : 0,
+            'contested_marks' : 0,
+            'marks_inside_50' : 0,
+            'one_percenters' : 0,
+            'bounces' : 0,
+            'goal_assists' : 0,
+            'disposals' : 0
+        }
 
         # contain weather information for game based on Stadium and time of year
         self.temperature = None
@@ -413,6 +431,7 @@ class Game:
         # generate ranking points for each teams' best 22
         self.home_team._gameday_ranking_points()
         self.away_team._gameday_ranking_points()
+        self._gen_stats()
 
         # assign random integers weighted in the home team's favor
         if self.rainfall == 0:
@@ -453,9 +472,18 @@ class Game:
                     self.attendance = round(triangular(stad.capacity*self._stad_lower, stad.capacity, stad.capacity*self._stad_weight))
 
     def _gen_stats(self):
+        home_team_stats = {}
+        for player in self.home_team.best_22.keys():
+            for attr,stat in player.gameday_stats.items():
+                self.home_team_stats[attr] += stat
 
+        away_team_stats = {}
+        for player in self.away_team.best_22.keys():
+            for attr,stat in player.gameday_stats.items():
+                self.away_team_stats[attr] += stat
 
-
+        self.home_team_stats = pd.DataFrame(self.home_team_stats, index=[0]).stack().droplevel(0).to_string().upper()
+        self.away_team_stats = pd.DataFrame(self.away_team_stats, index=[0]).stack().droplevel(0).to_string().upper()
 
 class HomeAwayGame(Game):
 
@@ -597,20 +625,15 @@ class Final(Game):
         print()
         print("---------------------------------------------------------------------------------------------------------------")
         [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
-        sleep(2)
         Final._play_final_round(2)
         [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
-        sleep(2)       
         Final._play_final_round(3)
         [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
         print("---------------------------------------------------------------------------------------------------------------")
-        sleep(2)
         Final._play_final_round(4)
         [print(f'\n\n\n\033[1m                                         {str(final.winner).upper()}\033[0m wins the premiership!\n                                         ({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
         print()
         print()
-        sleep(5)
-
 
     def __init__(self, final_type, weekday, date, start_time, week_of_finals):
         super().__init__(date, weekday, start_time)
@@ -686,7 +709,6 @@ class Final(Game):
         self._assign_scores()
         self._interpret_scores()
 
-
 class Round:
 
     instances = InstanceList()
@@ -707,13 +729,19 @@ class Round:
 
     def __init__(self, round_num):
         self.round_num = round_num
+
+        self.games = []
+        for game in HomeAwayGame.instances:
+            if game.round_num == self.round_num:
+                self.games.append(game)
+
+        self.ladder = None        
         Round._add_instance(self)
 
     def __repr__(self):
         return f'Round {self.round_num}'
 
     def play_round(self):
-        for game in HomeAwayGame.games_scheduled:
-            if game.round_num == self.round_num:
-                game._play_game()
-                self.ladder = Team.ladder
+        for game in self.games:
+            game._play_game()
+        self.ladder = Team.ladder
