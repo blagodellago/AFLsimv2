@@ -421,35 +421,12 @@ class Season:
 
 # execute season simulation:
 knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
-season2020 = Season(choice(knownyears))
+season2020 = Season(2018)
 season2020.play_season()
 
-# for team in season2020.teams:
-#     print(color.BOLD + str(team) + color.END)
-#     print(pd.DataFrame({'SKILLS' : team.gameday_values.keys(), '' : team.gameday_values.values()}).set_index('SKILLS', drop=True))
-#     print()
+# teamstats = pd.DataFrame({str(team): team.gameday_values.values() for team in season2020.teams}, index=season2020.teams[0].attribute_constraints)
 
-teamstats = pd.DataFrame({str(team): team.gameday_values.values() for team in season2020.teams}, index=season2020.teams[0].attribute_constraints)
-# print(teamstats)
-# print(teamstats.loc[:,'Adelaide':'Greater Western Sydney'])
-# print()
-# print(teamstats.loc[:,'Hawthorn':'Western Bulldogs'])
-# # print(teamstats.info)
-# # print(teamstats.describe)
-# # print(teamstats.iloc[1, :])
-# # print(teamstats.iloc[1, :].values.mean())
-# # print(teamstats.iloc[1, :].values.min())
-# # print(teamstats.iloc[1, :].values.max())
-# print()
-# print(teamstats.iloc[1, :].describe())
-
-counter = 0
-while counter < 21:
-    print(teamstats.iloc[counter, :].describe())
-    counter += 1
-
-for team in season2020.teams:
-    print(f'{team}: {len(team.best_22.keys())} {team.best_22}')
-
-# print(teamstats.loc[:,[7:12]])
-# print(teamstats.loc[:,[13:17]])
+# counter = 0
+# while counter < 21:
+#     print(teamstats.iloc[counter, :].describe())
+#     counter += 1

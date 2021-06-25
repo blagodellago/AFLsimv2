@@ -3,6 +3,7 @@ import numpy as np
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
+import heapq
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -207,7 +208,8 @@ class Team:
         self.roster_ranking_points = 0
         self.ranking_points = 0
         self.gameday_values = {}
-        
+        self.best_22 = {}
+
         self.attribute_constraints = {
             'kicks' : [0,25],
             'marks' : [0,20],
@@ -245,16 +247,11 @@ class Team:
         for player in self.roster:
             gameday_player_ranking_points[player] = player.ranking_points
 
-        gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1])
+        gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1], reverse=True)
         gameday_points_dict = dict(gameday_points_list)
 
-        self.best_22 = {}
-        counter = 0
-        while counter <= 23:
-            for player,points in reversed(gameday_points_dict.items()):
-                self.best_22[player] = points
-                counter += 1
-
+        # store teams best22 player and their ranking points in dict
+        self.best_22 = dict(heapq.nlargest(22, gameday_points_dict.items(), key=lambda i: i[1]))
 
         gameday_ranking_points = 0
         for val in self.best_22.values():
@@ -288,20 +285,6 @@ class Team:
 
         for attr,val in self.gameday_values.items():
             self.gameday_values[attr] = round(val)            
-
-        # print(f'{self}: {self.gameday_values}, {self.games_played}\n')
-            
-
-
-
-        # player_stats = {}
-        # for player,attrs in player_dict.items():
-        #     for attr,val in attrs.items():
-        #         for attribute,constraints in self.attribute_constraints.items():
-        #             if attribute == attr:
-        #                 player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
-
-            # player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
 
     def _adjust_percentage(self):
         # calculate team percentage
