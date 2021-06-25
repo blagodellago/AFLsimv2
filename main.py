@@ -3,6 +3,7 @@ import numpy as np
 from datetime import timedelta
 from time import sleep
 from random import randint, triangular, random, choice
+import heapq
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -206,6 +207,8 @@ class Team:
         self.home_stadium = InstanceList()
         self.roster_ranking_points = 0
         self.ranking_points = 0
+        self.gameday_values = {}
+        self.best_22 = {}
 
         self.attribute_constraints = {
             'kicks' : [0,25],
@@ -244,22 +247,18 @@ class Team:
         for player in self.roster:
             gameday_player_ranking_points[player] = player.ranking_points
 
-        gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1])
+        gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1], reverse=True)
         gameday_points_dict = dict(gameday_points_list)
 
-        self.best_22 = {}
-        counter = 0
-        while counter <= 23:
-            for player,points in reversed(gameday_points_dict.items()):
-                self.best_22[player] = points
-                counter += 1
-
+        # store teams best22 player and their ranking points in dict
+        self.best_22 = dict(heapq.nlargest(22, gameday_points_dict.items(), key=lambda i: i[1]))
 
         gameday_ranking_points = 0
         for val in self.best_22.values():
             gameday_ranking_points += val
         self.ranking_points = gameday_ranking_points
         self._gameday_player_points()
+        self._gameday_team_points()
 
     # use player attributes to generate gameday statistics
     def _gameday_player_points(self):
@@ -275,6 +274,17 @@ class Team:
                         player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
 
             player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
+
+    def _gameday_team_points(self):
+        for attr in self.attribute_constraints.keys():
+            self.gameday_values[attr] = 0
+
+        for player in self.best_22.keys():
+            for attr,val in player.attributes.items():
+                self.gameday_values[attr] += val
+
+        for attr,val in self.gameday_values.items():
+            self.gameday_values[attr] = round(val)            
 
     def _adjust_percentage(self):
         # calculate team percentage

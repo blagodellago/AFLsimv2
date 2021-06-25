@@ -4,6 +4,21 @@ import pandas as pd
 import numpy as np
 from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
 import os
+from random import choice
+import pyinputplus as pyip
+from time import sleep
+
+class color:
+   PURPLE = '\033[95m'
+   CYAN = '\033[96m'
+   DARKCYAN = '\033[36m'
+   BLUE = '\033[94m'
+   GREEN = '\033[92m'
+   YELLOW = '\033[93m'
+   RED = '\033[91m'
+   BOLD = '\033[1m'
+   UNDERLINE = '\033[4m'
+   END = '\033[0m'
 
 class Season:
     """Pass a year to initialize a complete season simulation of AFL football,
@@ -30,6 +45,42 @@ class Season:
         Team.ladder = None
 
     @classmethod
+    def _welcome_message(cls,season):
+
+        year_stats = {
+            2012 : {'Premier' : 'Sydney Swans', 'Wooden Spoon' : 'Greater Western Sydney', 'Brownlow Medal' : ['Sam Mitchell', 'Trent Cotchin']},
+            2013 : {'Premier' : 'Hawthorn', 'Wooden Spoon' : 'Greater Western Sydney', 'Brownlow Medal' : 'Gary Ablett, Jr.'},
+            2014 : {'Premier' : 'Hawthorn', 'Wooden Spoon' : 'St. Kilda', 'Brownlow Medal' : 'Matt Priddis'},
+            2015 : {'Premier' : 'Hawthorn', 'Wooden Spoon' : 'Carlton', 'Brownlow Medal' : 'Nat Fyfe'},
+            2016 : {'Premier' : 'Western Bulldogs', 'Wooden Spoon' : 'Essendon', 'Brownlow Medal' : 'Patrick Dangerfield'},
+            2017 : {'Premier' : 'Richmond', 'Wooden Spoon' : 'Brisbane Lions', 'Brownlow Medal' : 'Dusty Martin'},
+            2018 : {'Premier' : 'West Coast', 'Wooden Spoon' : 'Carlton', 'Brownlow Medal' : 'Tom Mitchell'},
+            2019 : {'Premier' : 'Richmond', 'Wooden Spoon' : 'Gold Coast', 'Brownlow Medal' : 'Nat Fyfe'},
+            2020 : {'Premier' : 'Richmond', 'Wooden Spoon' : 'Adelaide', 'Brownlow Medal' : 'Lachie Neale'},
+        }
+
+        for year,stats in year_stats.items():
+            if season == year:
+                print(f'Season {season} came and went...')
+                print()
+                sleep(1)
+                print('*The standout team was the ' + color.BOLD + f'{stats["Premier"]}' + color.END)
+                print()
+                sleep(1)
+                print('*On the other hand, it was a long year for ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END +', finishing with the wooden spoon')
+                print()
+                sleep(1)
+                if type(stats["Brownlow Medal"]) == list:
+                    print('*There were two clear standouts, along with a drug cheat.')
+                    print(color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, each winning a Brownlow Medal')
+                else:
+                    print('*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal')
+
+        print()
+        print()
+        print("\t\t\t\tSimulating the magnificent" + color.BOLD + f" Season {season}" + color.END + "...")
+
+    @classmethod
     def _format_df(cls, df):
         # format columns to accommodate Player and Team initializers
         df.columns = [c.replace(' ', '_') for c in df.columns]
@@ -47,13 +98,26 @@ class Season:
             df.insert(df.columns.get_loc('DOB'), 'First_Name', names.First_Name)
             df.insert(df.columns.get_loc('DOB'), 'Last_Name', names.Last_Name)
 
-    def __init__(self, year):
+    def __init__(self, year=None):
         # generate data corresponding to the year passed from the class dataset if requested year falls in range of dataset
         Season.reset_class_instances()
+
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print()
+        print(color.CYAN + "*****************************************************************************************" + color.END, color.BOLD + "github.com/blagodellago" + color.END)
+        print(color.CYAN + "*****************************" + color.END, color.BOLD + "WELCOME TO THE AFL SEASON SIMULATOR" + color.END, color.CYAN + "***********************************************" + color.END)
+        print(color.CYAN + "*****************************************************************************************************************" + color.END)
+        print()
+
+        # if no year specified, launch into interactive mode
+        if year == None:
+            self.interactive()
+        else:
+            self.year = year
+
         for season in Season.instances:
             if season.year == year:
                 Season.instances.remove(season)
-        self.year = year
         self.teams = Team.instances
         self.hagames = HomeAwayGame.instances
         self.fixture = HomeAwayGame.fixture
@@ -62,14 +126,7 @@ class Season:
         self.players = Player.instances
         self.rounds = Round.instances
 
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print()
-        print("**************************************************************************************github.com/blagodellago**")
-        print("*****************************WELCOME TO THE AFL SEASON SIMULATOR***********************************************")
-        print("***************************************************************************************************************")
-        print()
-        print(f"Simulating the magnificent Season {self.year}...")
-        print()
+        Season._welcome_message(self.year)
 
         if self.year in [2012,2013,2014,2015,2016,2017,2018,2019,2020]:
             self._data = Season.afl.loc[Season.afl.Year == self.year].loc[Season.afl.Round != 'EF'].loc[Season.afl.Round != 'PF'].loc[Season.afl.Round != 'SF'].loc[Season.afl.Round != 'QF'].loc[Season.afl.Round != 'GF']
@@ -78,12 +135,12 @@ class Season:
             self._build_future_fixture(self.year)
         Season.instances.append(self)
 
-        # self.year_stats = if self.year == {
-        #     2012   
-        # }
-
     def __repr__(self):
         return f'Season: {self.year}'
+
+    def interactive(self):
+        response = pyip.inputNum('Which year of AFL would you like to simulate?\n: ')
+        self.year = response
 
     def ladder(self):
         return Team.ladder
@@ -362,8 +419,14 @@ class Season:
         self.play_final_series()
 
 
-
 # execute season simulation:
-season2020 = Season(2021)
+knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
+season2020 = Season(2018)
 season2020.play_season()
 
+# teamstats = pd.DataFrame({str(team): team.gameday_values.values() for team in season2020.teams}, index=season2020.teams[0].attribute_constraints)
+
+# counter = 0
+# while counter < 21:
+#     print(teamstats.iloc[counter, :].describe())
+#     counter += 1
