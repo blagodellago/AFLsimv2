@@ -206,7 +206,8 @@ class Team:
         self.home_stadium = InstanceList()
         self.roster_ranking_points = 0
         self.ranking_points = 0
-
+        self.gameday_values = {}
+        
         self.attribute_constraints = {
             'kicks' : [0,25],
             'marks' : [0,20],
@@ -260,6 +261,7 @@ class Team:
             gameday_ranking_points += val
         self.ranking_points = gameday_ranking_points
         self._gameday_player_points()
+        self._gameday_team_points()
 
     # use player attributes to generate gameday statistics
     def _gameday_player_points(self):
@@ -275,6 +277,31 @@ class Team:
                         player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
 
             player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
+
+    def _gameday_team_points(self):
+        for attr in self.attribute_constraints.keys():
+            self.gameday_values[attr] = 0
+
+        for player in self.best_22.keys():
+            for attr,val in player.attributes.items():
+                self.gameday_values[attr] += val
+
+        for attr,val in self.gameday_values.items():
+            self.gameday_values[attr] = round(val)            
+
+        # print(f'{self}: {self.gameday_values}, {self.games_played}\n')
+            
+
+
+
+        # player_stats = {}
+        # for player,attrs in player_dict.items():
+        #     for attr,val in attrs.items():
+        #         for attribute,constraints in self.attribute_constraints.items():
+        #             if attribute == attr:
+        #                 player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
+
+            # player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
 
     def _adjust_percentage(self):
         # calculate team percentage

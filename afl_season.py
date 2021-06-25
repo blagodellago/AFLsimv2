@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
 import os
+from random import choice
 import pyinputplus as pyip
 from time import sleep
 
@@ -69,7 +70,11 @@ class Season:
                 print('*On the other hand, it was a long year for ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END +', finishing with the wooden spoon')
                 print()
                 sleep(1)
-                print('*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal')
+                if type(stats["Brownlow Medal"]) == list:
+                    print('*There were two clear standouts, along with a drug cheat.')
+                    print(color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, each winning a Brownlow Medal')
+                else:
+                    print('*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal')
 
         print()
         print()
@@ -415,6 +420,36 @@ class Season:
 
 
 # execute season simulation:
-season2020 = Season()
+knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
+season2020 = Season(choice(knownyears))
 season2020.play_season()
 
+# for team in season2020.teams:
+#     print(color.BOLD + str(team) + color.END)
+#     print(pd.DataFrame({'SKILLS' : team.gameday_values.keys(), '' : team.gameday_values.values()}).set_index('SKILLS', drop=True))
+#     print()
+
+teamstats = pd.DataFrame({str(team): team.gameday_values.values() for team in season2020.teams}, index=season2020.teams[0].attribute_constraints)
+# print(teamstats)
+# print(teamstats.loc[:,'Adelaide':'Greater Western Sydney'])
+# print()
+# print(teamstats.loc[:,'Hawthorn':'Western Bulldogs'])
+# # print(teamstats.info)
+# # print(teamstats.describe)
+# # print(teamstats.iloc[1, :])
+# # print(teamstats.iloc[1, :].values.mean())
+# # print(teamstats.iloc[1, :].values.min())
+# # print(teamstats.iloc[1, :].values.max())
+# print()
+# print(teamstats.iloc[1, :].describe())
+
+counter = 0
+while counter < 21:
+    print(teamstats.iloc[counter, :].describe())
+    counter += 1
+
+for team in season2020.teams:
+    print(f'{team}: {len(team.best_22.keys())} {team.best_22}')
+
+# print(teamstats.loc[:,[7:12]])
+# print(teamstats.loc[:,[13:17]])
