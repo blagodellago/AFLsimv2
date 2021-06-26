@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta
 from time import sleep
-from random import randint, triangular, random, choice
+from random import randint, triangular, random, choice, gauss
 import heapq
+import os
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -13,6 +14,20 @@ class InstanceList(list):
             if name in instance.name:
                 matches.append(instance)
         return matches
+
+
+class color:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
 
 class Player:
     """Initialize a Player object with 'name' the only required parameter"""
@@ -32,7 +47,7 @@ class Player:
             pass
 
     # when initializing Player objects they hold 12 attributes:
-    def __init__(self, name, first_name=None, last_name=None, team=None, height=None, weight=None, disposals=None, kicks=None, marks=None, handballs=None, goals=None, behinds=None, hit_outs=None, tackles=None, rebounds=None, inside_50s=None, clearances=None, clangers=None, frees_for=None, frees_against=None, brownlow_votes=None, contested_poss=None, uncontested_poss=None, contested_marks=None, marks_inside_50=None, one_percenters=None, bounces=None, goal_assists=None):
+    def __init__(self, name, first_name=None, last_name=None, team=None, dob=None, height=None, weight=None, disposals=None, kicks=None, marks=None, handballs=None, goals=None, behinds=None, hit_outs=None, tackles=None, rebounds=None, inside_50s=None, clearances=None, clangers=None, frees_for=None, frees_against=None, brownlow_votes=None, contested_poss=None, uncontested_poss=None, contested_marks=None, marks_inside_50=None, one_percenters=None, bounces=None, goal_assists=None):
         self.name = name
         self.first_name = first_name
         self.last_name = last_name
@@ -40,6 +55,7 @@ class Player:
             if team_instance.name == team:
                 self.team = team_instance
                 team_instance.roster.append(self)
+        self.dob = dob
         self.height = height
         self.weight = weight
         self.disposals = disposals
@@ -64,6 +80,7 @@ class Player:
         self.one_percenters = one_percenters
         self.bounces = bounces
         self.goal_assists = goal_assists
+
         self.ranking_points = round(
             (self.disposals)+
             (self.kicks*2)+
@@ -79,7 +96,6 @@ class Player:
             (self.clangers*4)+
             (self.frees_for*4)-
             (self.frees_against*5)+
-            (self.brownlow_votes*20)+
             (self.contested_poss*4)+
             (self.uncontested_poss)+
             (self.contested_marks*8)+
@@ -90,6 +106,7 @@ class Player:
         )
 
         self.team.roster_ranking_points += self.ranking_points
+
         self.attributes = {
                     'kicks' : self.kicks,
                     'marks' : self.marks,
@@ -104,7 +121,6 @@ class Player:
                     'clangers' : self.clangers,
                     'frees_for' : self.frees_for,
                     'frees_against' : self.frees_against,
-                    'brownlow_votes' : self.brownlow_votes,
                     'contested_poss' : self.contested_poss,
                     'uncontested_poss' : self.uncontested_poss,
                     'contested_marks' : self.contested_marks,
@@ -113,6 +129,8 @@ class Player:
                     'bounces' : self.bounces,
                     'goal_assists' : self.goal_assists
         }
+
+        self.jittered_stats = {}
 
         self.gameday_stats = {}
         self.id = Player.player_id
@@ -162,6 +180,12 @@ class Player:
         else:
             self._weight = weight
 
+    # randomize player stats using a gaussian distribution
+    def _jitter_stats(self):
+        # if self.age
+        for attr,val in self.attributes.items():
+            self.jittered_stats[attr] = round(gauss(val, val*.35))
+
 class Team:
     """Team objects are initialized with only the team name"""
 
@@ -206,33 +230,8 @@ class Team:
         self.percentage = 0
         self.home_stadium = InstanceList()
         self.roster_ranking_points = 0
-        self.ranking_points = 0
-        self.gameday_values = {}
+        self.best_22_ranking_points = 0
         self.best_22 = {}
-
-        self.attribute_constraints = {
-            'kicks' : [0,25],
-            'marks' : [0,20],
-            'handballs' : [0,30],
-            'goals' : [0,10],
-            'behinds' : [0,8],
-            'hit_outs' : [0,50],
-            'tackles' : [0,17],
-            'rebounds' : [0,14],
-            'inside_50s' : [0,12],
-            'clearances' : [0,17],
-            'clangers' : [0,10],
-            'frees_for' : [0,6],
-            'frees_against' : [0,6],
-            'brownlow_votes' : [0,3],
-            'contested_poss' : [0,30],
-            'uncontested_poss' : [0,35],
-            'contested_marks' : [0,10],
-            'marks_inside_50' : [0,10],
-            'one_percenters' : [0,20],
-            'bounces' : [0,10],
-            'goal_assists' : [0,6]
-        }
 
         self.id = Team.team_id
         Team.team_id += 1
@@ -242,49 +241,17 @@ class Team:
         return self.name
 
     # assign team gameday ranking points based on their 22 highest ranked players
-    def _gameday_ranking_points(self):
+    def generate_best22(self):
         gameday_player_ranking_points = {}
         for player in self.roster:
-            gameday_player_ranking_points[player] = player.ranking_points
+            gameday_player_ranking_points[player] = gauss(player.ranking_points, player.ranking_points*.2)
 
         gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1], reverse=True)
         gameday_points_dict = dict(gameday_points_list)
 
         # store teams best22 player and their ranking points in dict
         self.best_22 = dict(heapq.nlargest(22, gameday_points_dict.items(), key=lambda i: i[1]))
-
-        gameday_ranking_points = 0
-        for val in self.best_22.values():
-            gameday_ranking_points += val
-        self.ranking_points = gameday_ranking_points
-        self._gameday_player_points()
-        self._gameday_team_points()
-
-    # use player attributes to generate gameday statistics
-    def _gameday_player_points(self):
-        player_dict = {}
-        for player in self.best_22.keys():
-            player_dict[player] = player.attributes
-
-        player_stats = {}
-        for player,attrs in player_dict.items():
-            for attr,val in attrs.items():
-                for attribute,constraints in self.attribute_constraints.items():
-                    if attribute == attr:
-                        player.gameday_stats[attr] = round(triangular(low=constraints[0], high=constraints[1], mode=val))
-
-            player.gameday_stats['disposals'] = player.gameday_stats['kicks'] + player.gameday_stats['handballs']
-
-    def _gameday_team_points(self):
-        for attr in self.attribute_constraints.keys():
-            self.gameday_values[attr] = 0
-
-        for player in self.best_22.keys():
-            for attr,val in player.attributes.items():
-                self.gameday_values[attr] += val
-
-        for attr,val in self.gameday_values.items():
-            self.gameday_values[attr] = round(val)            
+        return self.best_22
 
     def _adjust_percentage(self):
         # calculate team percentage
@@ -346,12 +313,37 @@ class Game:
 
     instances = InstanceList()
 
+    attribute_constraints = {
+        'kicks' : [0,25],
+        'marks' : [0,20],
+        'handballs' : [0,30],
+        'goals' : [0,10],
+        'behinds' : [0,8],
+        'hit_outs' : [0,50],
+        'tackles' : [0,17],
+        'rebounds' : [0,14],
+        'inside_50s' : [0,12],
+        'clearances' : [0,17],
+        'clangers' : [0,10],
+        'frees_for' : [0,6],
+        'frees_against' : [0,6],
+        'contested_poss' : [0,30],
+        'uncontested_poss' : [0,35],
+        'contested_marks' : [0,10],
+        'marks_inside_50' : [0,10],
+        'one_percenters' : [0,20],
+        'bounces' : [0,10],
+        'goal_assists' : [0,6]
+    }
+
     @classmethod
     def _play_homeaway_games(cls):
         for rnd in Round.instances:
             rnd.play_round()
         Final._set_finalists()
         Team._refresh_ladder()
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(color.PURPLE + "###################################################################################################################" + color.END)
         print("\n",Team.ladder,"\n")
 
     @classmethod
@@ -371,60 +363,21 @@ class Game:
         self.name = f'{self.home_team} vs {self.away_team}'
         self.stadium = None
         self.attendance = None
+        self.home_22 = None
+        self.away_22 = None
+        self.homeranking = 0
+        self.awayranking = 0
 
         # hold the final scores of the game for reference
         self.home_score = 0
         self.away_score = 0
         self.final_score = ''
-        self.home_team_stats = {
-            'kicks' : 0,
-            'marks' : 0,
-            'handballs' : 0,
-            'goals' : 0,
-            'behinds' : 0,
-            'hit_outs' : 0,
-            'tackles' : 0,
-            'rebounds' : 0,
-            'inside_50s' : 0,
-            'clearances' : 0,
-            'clangers' : 0,
-            'frees_for' : 0,
-            'frees_against' : 0,
-            'brownlow_votes' : 0,
-            'contested_poss' : 0,
-            'uncontested_poss' : 0,
-            'contested_marks' : 0,
-            'marks_inside_50' : 0,
-            'one_percenters' : 0,
-            'bounces' : 0,
-            'goal_assists' : 0,
-            'disposals' : 0
-        }
 
-        self.away_team_stats = {
-            'kicks' : 0,
-            'marks' : 0,
-            'handballs' : 0,
-            'goals' : 0,
-            'behinds' : 0,
-            'hit_outs' : 0,
-            'tackles' : 0,
-            'rebounds' : 0,
-            'inside_50s' : 0,
-            'clearances' : 0,
-            'clangers' : 0,
-            'frees_for' : 0,
-            'frees_against' : 0,
-            'brownlow_votes' : 0,
-            'contested_poss' : 0,
-            'uncontested_poss' : 0,
-            'contested_marks' : 0,
-            'marks_inside_50' : 0,
-            'one_percenters' : 0,
-            'bounces' : 0,
-            'goal_assists' : 0,
-            'disposals' : 0
-        }
+        self.home_stats = {}
+        self.away_stats = {}
+
+        self.home_player_stats = None
+        self.away_player_stats = None
 
         # contain weather information for game based on Stadium and time of year
         self.temperature = None
@@ -434,28 +387,75 @@ class Game:
     def __repr__(self):
         return f'{self.home_team} vs {self.away_team}'
 
+    def _get_ranking_points(self):
+        for val in self.home_22.values():
+            self.homeranking += val
+        for val in self.away_22.values():
+            self.awayranking += val
+
+        self.home_team.best_22_ranking_points = self.homeranking
+        self.away_team.best_22_ranking_points = self.awayranking
+
+    def _gen_gameday_stats(self):
+        for attr in Game.attribute_constraints.keys():
+            self.home_stats[attr] = 0
+
+        for attr in Game.attribute_constraints.keys():
+            self.away_stats[attr] = 0
+
+        for player in self.home_22.keys():
+            player._jitter_stats()
+            for attr,val in player.jittered_stats.items():
+                self.home_stats[attr] += val
+
+        for player in self.away_22.keys():
+            player._jitter_stats()
+            for attr,val in player.jittered_stats.items():
+                self.away_stats[attr] += val
+
+        for attr,val in self.home_stats.items():
+            self.home_stats[attr] = round(val)
+
+        for attr,val in self.away_stats.items():
+            self.away_stats[attr] = round(val)
+
+    # use player attributes to generate gameday statistics
+    def _gameday_player_points(self, team):
+        player_dict = {}
+        for player in team.best_22.keys():
+            player_dict[player] = player.jittered_stats
+
+        player_df = pd.DataFrame((player_dict[i] for i in player_dict), index=player_dict.keys())
+
+        return player_df
+
     def _get_stadium(self):
         pass
 
     def _assign_scores(self):
         # generate ranking points for each teams' best 22
-        self.home_team._gameday_ranking_points()
-        self.away_team._gameday_ranking_points()
+        self.home_22 = self.home_team.generate_best22()
+        self.away_22 = self.away_team.generate_best22()
+        self._get_ranking_points()
+        self._gen_gameday_stats()
+        
+        self.away_player_stats = self._gameday_player_points(self.away_team)
+        self.home_player_stats = self._gameday_player_points(self.home_team)
         self._gen_stats()
 
         # assign random integers weighted in the home team's favor
         if self.rainfall == 0:
-            self.home_score += round(randint(40,120)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
-            self.away_score += round(randint(40,120)*(self.away_team.ranking_points/self.home_team.ranking_points))
+            self.home_score += round(randint(40,120)*(self.homeranking/self.awayranking)*1.1)
+            self.away_score += round(randint(40,120)*(self.awayranking/self.homeranking))
         elif self.rainfall < 3:
-            self.home_score += round(randint(35,110)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
-            self.away_score += round(randint(35,110)*(self.away_team.ranking_points/self.home_team.ranking_points))
+            self.home_score += round(randint(35,110)*(self.homeranking/self.awayranking)*1.1)
+            self.away_score += round(randint(35,110)*(self.awayranking/self.homeranking))
         elif self.rainfall < 10:
-            self.home_score += round(randint(30,80)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
-            self.away_score += round(randint(30,80)*(self.away_team.ranking_points/self.home_team.ranking_points))     
+            self.home_score += round(randint(30,80)*(self.homeranking/self.awayranking)*1.1)
+            self.away_score += round(randint(30,80)*(self.awayranking/self.homeranking))     
         else:
-            self.home_score += round(randint(25,60)*(self.home_team.ranking_points/self.away_team.ranking_points)*1.1)
-            self.away_score += round(randint(25,60)*(self.away_team.ranking_points/self.home_team.ranking_points))  
+            self.home_score += round(randint(25,60)*(self.homeranking/self.awayranking)*1.1)
+            self.away_score += round(randint(25,60)*(self.awayranking/self.homeranking))  
 
     def _setup_game(self):
         # utlize assign_scores() and then update Team attributes depending on outcome
@@ -482,18 +482,14 @@ class Game:
                     self.attendance = round(triangular(stad.capacity*self._stad_lower, stad.capacity, stad.capacity*self._stad_weight))
 
     def _gen_stats(self):
-        home_team_stats = {}
-        for player in self.home_team.best_22.keys():
-            for attr,stat in player.gameday_stats.items():
-                self.home_team_stats[attr] += stat
+        self.home_stats = self.home_player_stats.sum()
+        self.away_stats = self.away_player_stats.sum()
 
-        away_team_stats = {}
-        for player in self.away_team.best_22.keys():
-            for attr,stat in player.gameday_stats.items():
-                self.away_team_stats[attr] += stat
+        df_home_stats = pd.DataFrame(self.home_stats).rename(columns = {0:self.home_team})
+        df_away_stats = pd.DataFrame(self.away_stats).rename(columns = {0:self.away_team})
 
-        self.home_team_stats = pd.DataFrame(self.home_team_stats, index=[0]).stack().droplevel(0).to_string().upper()
-        self.away_team_stats = pd.DataFrame(self.away_team_stats, index=[0]).stack().droplevel(0).to_string().upper()
+        self.game_stats = pd.merge(df_home_stats, df_away_stats, left_index=True, right_index=True)
+
 
 class HomeAwayGame(Game):
 
@@ -629,19 +625,21 @@ class Final(Game):
 
     @classmethod
     def _play_final_series(cls):
-        # how the entire Final series is played
         Final._play_final_round(1)
         print()
         print()
-        print("---------------------------------------------------------------------------------------------------------------")
-        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
+        print(color.PURPLE + "###################################################################################################################" + color.END)
+        [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
         Final._play_final_round(2)
-        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
+        [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
         Final._play_final_round(3)
-        [print(f'                                       {final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
-        print("---------------------------------------------------------------------------------------------------------------")
+        [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
+        print(color.PURPLE + "###################################################################################################################" + color.END)
         Final._play_final_round(4)
-        [print(f'\n\n\n\033[1m                                         {str(final.winner).upper()}\033[0m wins the premiership!\n                                         ({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
+        [print(f'\n\n\n\033[1m\t\t\t\t\t{str(final.winner).upper()}\033[0m wins the premiership!\n\t\t\t\t\t({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
+        print()
+        print()
+        [print(f'{final.game_stats}') for final in Final.instances if final.week_of_finals == 4]
         print()
         print()
 

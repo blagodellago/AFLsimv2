@@ -3,22 +3,11 @@ import re
 import pandas as pd
 import numpy as np
 from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
+from main import color
 import os
 from random import choice
 import pyinputplus as pyip
 from time import sleep
-
-class color:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
 
 class Season:
     """Pass a year to initialize a complete season simulation of AFL football,
@@ -61,24 +50,46 @@ class Season:
 
         for year,stats in year_stats.items():
             if season == year:
-                print(f'Season {season} came and went...')
+                message1 = f'Season {season} came and went...'
+                message2 = '*The standout team was the ' + color.BOLD + f'{stats["Premier"]}' + color.END
+                message3 = '*On the other hand, it was a long year for the wooden spooners ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END
+                message4 = '*There were two clear standouts, along with a drug cheat.'
+                message5 = color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, and joint Brownlow Medal winners'
+                message6 = '*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal'
+                message7 = color.YELLOW + f"...Simulating the magnificent Season {season}..." + color.END
+                print(color.BLUE + "###################################################################################################################" + color.END)
+                print(color.BLUE + "###################################################################################################################" + color.END)
+                print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+                print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+                print(color.BLUE + "###################################################################################################################" + color.END)
+                print(color.BLUE + "###################################################################################################################" + color.END)
+                print()
+                print()
+                print(message1)
                 print()
                 sleep(1)
-                print('*The standout team was the ' + color.BOLD + f'{stats["Premier"]}' + color.END)
+                print(message2)
                 print()
                 sleep(1)
-                print('*On the other hand, it was a long year for ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END +', finishing with the wooden spoon')
+                print(message3)
                 print()
                 sleep(1)
                 if type(stats["Brownlow Medal"]) == list:
-                    print('*There were two clear standouts, along with a drug cheat.')
-                    print(color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, each winning a Brownlow Medal')
+                    print(message4)
+                    print(message5)
+                    print(color.GREEN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
+
                 else:
-                    print('*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal')
+                    print(message6)
+                    print(color.GREEN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
 
         print()
-        print()
-        print("\t\t\t\tSimulating the magnificent" + color.BOLD + f" Season {season}" + color.END + "...")
+        print(message7)
+
+
 
     @classmethod
     def _format_df(cls, df):
@@ -104,10 +115,9 @@ class Season:
 
         os.system('cls' if os.name == 'nt' else 'clear')
         print()
-        print(color.CYAN + "*****************************************************************************************" + color.END, color.BOLD + "github.com/blagodellago" + color.END)
-        print(color.CYAN + "*****************************" + color.END, color.BOLD + "WELCOME TO THE AFL SEASON SIMULATOR" + color.END, color.CYAN + "***********************************************" + color.END)
-        print(color.CYAN + "*****************************************************************************************************************" + color.END)
-        print()
+        print(color.CYAN + "*******************************************************************************************" + color.END, color.BOLD + "github.com/blagodellago" + color.END)
+        print(color.CYAN + "*******************************" + color.END, color.BOLD + "WELCOME TO THE AFL SEASON SIMULATOR" + color.END, color.CYAN + "***********************************************" + color.END)
+        print(color.CYAN + "*******************************************************************************************************************" + color.END)
 
         # if no year specified, launch into interactive mode
         if year == None:
@@ -153,7 +163,7 @@ class Season:
         teams = pd.pivot_table(self._data, values=[
         # isolate players from each team    
 
-            'Height', 'Weight', 'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
+            'DOB', 'Height', 'Weight', 'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
             'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
             'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
             'Contested_Possessions', 'Uncontested_Possessions', 'Contested_Marks',
@@ -163,7 +173,7 @@ class Season:
                 .reset_index()\
                 .reindex(columns=[
                         
-            'Player', 'First_Name', 'Last_Name', 'Team', 'Height', 'Weight', 
+            'Player', 'First_Name', 'Last_Name', 'Team', 'DOB', 'Height', 'Weight', 
             'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
             'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
             'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
@@ -380,7 +390,7 @@ class Season:
     def _gen_Players(self, df):   
         # build players using the Player_class 
         for row in df.values:
-            Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27])
+            Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27], row[28])
 
     def _gen_Teams(self, df):    
         # build teams using the Team_class
@@ -421,12 +431,5 @@ class Season:
 
 # execute season simulation:
 knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
-season2020 = Season(2018)
+season2020 = Season(choice(knownyears))
 season2020.play_season()
-
-# teamstats = pd.DataFrame({str(team): team.gameday_values.values() for team in season2020.teams}, index=season2020.teams[0].attribute_constraints)
-
-# counter = 0
-# while counter < 21:
-#     print(teamstats.iloc[counter, :].describe())
-#     counter += 1
