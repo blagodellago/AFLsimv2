@@ -1,11 +1,19 @@
-Leveraging player stats to build a full AFL season simulation
+Leveraging player stats to build a full AFL season simulation.
 
-python3 -i afl_season.py [year]
+'python3 -i afl_season.py -y [year]'
 
+After initialization, season can be accessed with variable: 'season'
 
 The following instances are stored as season attributes:
+(each season attribute can use search() command to see if string in name)
+(eg. season.teams[17].season_stats, season.players.search("Marcus"))
+
+.ladder(round_num)		- prints ladder after specified season
 
 .players:
+	.stats() 	- prints season stats
+	.averages()		- prints season averages
+
 	.name
 	.first_name
 	.last_name
@@ -46,6 +54,9 @@ The following instances are stored as season attributes:
 	.injury_duration
 
 .teams:
+	.stats() 	- prints season stats
+	.averages()		- prints season averages
+
 	.name
 	.roster
 	.wins
@@ -104,3 +115,4 @@ The following instances are stored as season attributes:
 .rounds:
 	.round_num
 	.games
+

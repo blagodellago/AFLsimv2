@@ -1,10 +1,6 @@
-### define functions, build fixture, and season
-import re
-import os
-import sys
+import re, os, sys, getopt
 import pandas as pd
 import numpy as np
-import pyinputplus as pyip
 from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round, color
 from random import choice
 from time import sleep
@@ -51,7 +47,7 @@ class Season:
         for year,stats in year_stats.items():
             if season == year:
                 message1 = f'Season {season} came and went...'
-                message2 = '*' + color.BOLD + f'{stats["Premier"]}' + color.END + 'won the premiership after a stellar season'
+                message2 = '*' + color.BOLD + f'{stats["Premier"]}' + color.END + ' won the premiership after a stellar season'
                 message3 = '*On the other hand, it was a long year for the wooden spooners ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END
                 message4 = '*There were two clear standouts, along with a drug cheat:'
                 message5 = color.BOLD + f'\t\t*{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, and joint Brownlow Medal winners'
@@ -115,9 +111,10 @@ class Season:
         print(color.BLUE + "###################################################################################################################" + color.END)
         print()
         print()
-        # if no year specified, launch into interactive mode
+
+        # if no year specified use a random known year
         if year == None:
-            self.interactive()
+            self.year = choice([2012,2013,2014,2015,2016,2017,2018,2019,2020])
         else:
             self.year = year
 
@@ -143,17 +140,12 @@ class Season:
     def __repr__(self):
         return f'Season: {self.year}'
 
-    def interactive(self):
-        response = pyip.inputNum('Which year of AFL would you like to simulate?\n: ')
-        self.year = response
+    # print ladder after specified round
+    def ladder(self, round_num):
+        rnd = round_num - 1
+        print(self.rounds[rnd].ladder)
 
-    def ladder(self):
-        return Team.ladder
-
-    # def team_results(self,team):
-    #     for team in self.teams:
-    #         if
-
+    # build fixture using known player data
     def _build_known_fixture(self):
         # create players and teams based on the year specified
         Season._format_df(self._data)
@@ -434,8 +426,22 @@ class Season:
         self.play_homeaway_games()
         self.play_final_series()
 
+# accept command line options for help menu and year of season
+argumentList = sys.argv[1:]
+options = "hy:"
+long_options = ["help", "year"]
+ 
+try:
+    arguments, values = getopt.getopt(argumentList, options, long_options)
+    for currentArgument, currentValue in arguments:
+        if currentArgument in ("-h", "--help"):
+            print("help: 'python3 -i afl_season.py [year]'")
+            print("\nhelp: ensure year is between 2012-2100 and an integer")
+            print("** years 2012-2020 utilize real player data")
+        elif currentArgument in ("-y", "--year"):
+            season = Season(int(currentValue))
+            season.play_season()
 
-# execute season simulation:
-knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
-afl = Season(choice(knownyears))
-afl.play_season()
+except getopt.error as err:
+    # output error, and return with an error code
+    print(str(err))

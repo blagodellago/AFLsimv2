@@ -290,6 +290,16 @@ class Player:
         if self.injury_duration == 0:
             self.injured = False
 
+    # return stats as a DataFrame
+    def stats(self):
+        self.season_stats = pd.DataFrame({"--------------" : self.season_stats.keys(), "season_totals" : self.season_stats.values()}).set_index("--------------")
+        print(self.season_stats)
+
+    # return average stats as a DataFrame
+    def averages(self):
+        self.season_averages = pd.DataFrame({"--------------" : self.season_averages.keys(), "season_totals" : self.season_averages.values()}).set_index("--------------")
+        print(self.season_averages)
+
 class Team:
     """Team objects are initialized with only the team name"""
 
@@ -395,6 +405,16 @@ class Team:
     def _season_averages(self):
         for attr,val in self.season_stats.items():
             self.season_averages[attr] = round(val / (self.games_played + self.finals_played), 2)
+
+    # return stats as a DataFrame
+    def stats(self):
+        self.season_stats = pd.DataFrame({"--------------" : self.season_stats.keys(), "season_totals" : self.season_stats.values()}).set_index("--------------")
+        print(self.season_stats)
+
+    # return average stats as a DataFrame
+    def averages(self):
+        self.season_averages = pd.DataFrame({"--------------" : self.season_averages.keys(), "season_totals" : self.season_averages.values()}).set_index("--------------")
+        print(self.season_averages)
 
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
@@ -601,8 +621,6 @@ class Game:
         self.home_stats = self.home_player_stats.sum()
         self.away_stats = self.away_player_stats.sum()
 
-        # store gameday stats for the season for each team
-
         for attr,val in self.home_stats.items():
             self.home_team.season_stats[attr] += val
         for attr,val in self.away_stats.items():
@@ -618,7 +636,6 @@ class Game:
         self._gen_weather()
         self._assign_scores()
         self._gen_attendance()
-
 
 class HomeAwayGame(Game):
 
