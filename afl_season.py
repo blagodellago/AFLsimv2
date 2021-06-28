@@ -1,12 +1,12 @@
 ### define functions, build fixture, and season
 import re
+import os
+import sys
 import pandas as pd
 import numpy as np
-from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round
-from main import color
-import os
-from random import choice
 import pyinputplus as pyip
+from main import InstanceList, Player, Team, Game, HomeAwayGame, Final, Stadium, Round, color
+from random import choice
 from time import sleep
 
 class Season:
@@ -19,7 +19,7 @@ class Season:
     instances = InstanceList()
 
     @classmethod
-    def reset_class_instances(cls):
+    def _reset_class_instances(cls):
         Season.afl = pd.read_csv(r'data/afl_stats.csv')
         Team.instances.clear()
         Game.instances.clear()
@@ -51,22 +51,11 @@ class Season:
         for year,stats in year_stats.items():
             if season == year:
                 message1 = f'Season {season} came and went...'
-                message2 = '*The standout team was the ' + color.BOLD + f'{stats["Premier"]}' + color.END
+                message2 = '*' + color.BOLD + f'{stats["Premier"]}' + color.END + 'won the premiership after a stellar season'
                 message3 = '*On the other hand, it was a long year for the wooden spooners ' + color.BOLD + f'{stats["Wooden Spoon"]}' + color.END
-                message4 = '*There were two clear standouts, along with a drug cheat.'
-                message5 = color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, and joint Brownlow Medal winners'
+                message4 = '*There were two clear standouts, along with a drug cheat:'
+                message5 = color.BOLD + f'\t\t*{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, and joint Brownlow Medal winners'
                 message6 = '*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal'
-                print(color.BLUE + "###################################################################################################################" + color.END)
-                print(color.BLUE + "###################################################################################################################" + color.END)
-                print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-                print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-                print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-                print(color.BLUE + "###################################################################################################################" + color.END)
-                print(color.BLUE + "###################################################################################################################" + color.END)
-                print()
-                print()
                 print(message1)
                 print()
                 sleep(1)
@@ -82,7 +71,7 @@ class Season:
                 else:
                     print(message6)
 
-        message7 = color.YELLOW + f"...Simulating the magnificent Season {season}..." + color.END
+        message7 = color.YELLOW + f"...Building season conditions for {season}..." + color.END
         print()
         print(color.CYAN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
         print(f'\t\t\t\t\t{message7}')
@@ -108,14 +97,24 @@ class Season:
 
     def __init__(self, year=None):
         # generate data corresponding to the year passed from the class dataset if requested year falls in range of dataset
-        Season.reset_class_instances()
+        Season._reset_class_instances()
 
         os.system('cls' if os.name == 'nt' else 'clear')
         print()
         print(color.CYAN + "*******************************************************************************************" + color.END, color.BOLD + "github.com/blagodellago" + color.END)
         print(color.CYAN + "*******************************" + color.END, color.BOLD + "WELCOME TO THE AFL SEASON SIMULATOR" + color.END, color.CYAN + "***********************************************" + color.END)
         print(color.CYAN + "*******************************************************************************************************************" + color.END)
-
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+        print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+        print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+        print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+        print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print()
+        print()
         # if no year specified, launch into interactive mode
         if year == None:
             self.interactive()
@@ -127,12 +126,11 @@ class Season:
                 Season.instances.remove(season)
         self.teams = Team.instances
         self.hagames = HomeAwayGame.instances
-        self.fixture = HomeAwayGame.fixture
         self.stadiums = Stadium.instances
         self.finals = Final.instances
         self.players = Player.instances
         self.rounds = Round.instances
-        self.tmstmp = pd.Timestamp(f'{year}-04-01')
+        self._tmstmp = pd.Timestamp(f'{self.year}-04-01')
         Season._welcome_message(self.year)
 
         if self.year in [2012,2013,2014,2015,2016,2017,2018,2019,2020]:
@@ -151,6 +149,10 @@ class Season:
 
     def ladder(self):
         return Team.ladder
+
+    # def team_results(self,team):
+    #     for team in self.teams:
+    #         if
 
     def _build_known_fixture(self):
         # create players and teams based on the year specified
@@ -266,28 +268,26 @@ class Season:
         'Sunday' : ['1:10pm','3:20pm','5:10pm']
         }
 
-        # tmstmp = pd.Timestamp(f'{year}-04-01')
-
         counter=1
         while counter <= 23:
 
             df = self._matches[counter]
-            while self.tmstmp.strftime('%A') != 'Thursday':
-                self.tmstmp += pd.Timedelta(1, 'day')
+            while self._tmstmp.strftime('%A') != 'Thursday':
+                self._tmstmp += pd.Timedelta(1, 'day')
 
             if counter in [12,13,14]:
                 for day,times in timeslots.items():
                     if day == 'Friday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self.tmstmp.strftime('%A'), times)
-                        self.tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self._tmstmp.strftime('%A'), times)
+                        self._tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self.tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self.tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self.tmstmp.strftime('%A'), times[2])
-                        self.tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self._tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self._tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self._tmstmp.strftime('%A'), times[2])
+                        self._tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self.tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self.tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self._tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self._tmstmp.strftime('%A'), times[2])
 
 
                 counter += 1
@@ -296,21 +296,21 @@ class Season:
             else:
                 for day,times in timeslots.items():
                     if day == 'Thursday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self.tmstmp.strftime('%A'), times)
-                        self.tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self._tmstmp.strftime('%A'), times)
+                        self._tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Friday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self.tmstmp.strftime('%A'), times)
-                        self.tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self._tmstmp.strftime('%A'), times)
+                        self._tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self.tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self.tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self.tmstmp.strftime('%A'), times[2])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self.tmstmp.strftime('%A'), times[3])
-                        self.tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self._tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self._tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self._tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self._tmstmp.strftime('%A'), times[3])
+                        self._tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[6], df.away_team[6], self.tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], self.tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[8], df.away_team[8], self.tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[6], df.away_team[6], self._tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], self._tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self._tmstmp, df.round_num[0], df.home_team[8], df.away_team[8], self._tmstmp.strftime('%A'), times[2])
 
             counter += 1
 
@@ -389,7 +389,9 @@ class Season:
         for row in df.values:
             Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27], row[28])
         for player in Player.instances:
-            player._add_age(self.tmstmp)
+            player._add_age(self._tmstmp)
+        for team in Team.instances:
+            team._season_stats()
 
     def _gen_Teams(self, df):    
         # build teams using the Team_class
@@ -424,20 +426,16 @@ class Season:
         Final._play_final_series()
 
     def play_season(self):
+        message8 = color.YELLOW + f"...Simulating the magnificent Season {self.year}..." + color.END
+        print()
+        print(color.CYAN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
+        print(f'\t\t\t\t\t{message8}')
+        print(color.CYAN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
         self.play_homeaway_games()
         self.play_final_series()
 
 
 # execute season simulation:
 knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
-season2020 = Season(choice(knownyears))
-season2020.play_season()
-
-for player in season2020.players:
-    if player.first_name == 'Marcus':
-        print(f'{player}: {player.season_stats}\n{player.season_averages}\n\n\n{player.age}\n\n\n{player.stamina}')
-        print(f'{player}: {player._injury_likelihood} {player.injured} {player.injury} games played: {player.games_played} games injured: {player.games_injured}')
-
-# for player in season2020.players:
-#     if player.injured == True:
-#         print(f'{player}: {player._injury_likelihood} {player.injured} {player.injury} games played: {player.games_played} games injured: {player.games_injured}')
+afl = Season(choice(knownyears))
+afl.play_season()

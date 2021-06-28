@@ -12,7 +12,10 @@ class InstanceList(list):
         for instance in self:
             if name in instance.name:
                 matches.append(instance)
-        return matches
+        if len(matches) == 1:
+            return matches[0]
+        else:
+            return matches
 
 
 class color:
@@ -30,9 +33,6 @@ class color:
 
 class Player:
     """Initialize a Player object with 'name' the only required parameter"""
-
-    # assign a unique ID to each Player instance
-    player_id = 1
 
     # class attributes:
     instances = InstanceList()
@@ -84,7 +84,7 @@ class Player:
 
         self.stamina = 100
         self.injured = False
-        self.injury = 0
+        self.injury_duration = 0
         self._training_status = False
         self._injury_likelihood = 0
 
@@ -137,16 +137,14 @@ class Player:
                     'goal_assists' : self.goal_assists
         }
 
-        self.jittered_stats = {}
+        self._jittered_stats = {}
         self.season_stats = {}
         self.season_averages = {}
         for attr,val in self.attributes.items():
             self.season_stats[attr] = 0
             self.season_averages[attr] = 0
-            self.jittered_stats[attr] = 0
+            self._jittered_stats[attr] = 0
 
-        self.id = Player.player_id
-        Player.player_id += 1
         Player._add_instance(self)
 
     def __repr__(self):
@@ -203,13 +201,13 @@ class Player:
 
         for attr,val in self.attributes.items():
             if attr == 'goals':
-                self.jittered_stats[attr] = round(gauss(val*val_modifier*score_modifier, val*variability_modifier))
+                self._jittered_stats[attr] = round((val + gauss(val*val_modifier*score_modifier, val*variability_modifier)) / 2)
             elif attr == 'behinds':
-                self.jittered_stats[attr] = round(gauss(val*val_modifier*score_modifier, val*variability_modifier))
+                self._jittered_stats[attr] = round((val + gauss(val*val_modifier*score_modifier, val*variability_modifier)) / 2)
             else:
-                self.jittered_stats[attr] = round(gauss(val*val_modifier, val*variability_modifier))
+                self._jittered_stats[attr] = round((val + gauss(val*val_modifier, val*variability_modifier)) / 2)
 
-        for attr,val in self.jittered_stats.items():
+        for attr,val in self._jittered_stats.items():
             self.season_stats[attr] += val
 
         self.season_stats['disposals'] = (self.season_stats['kicks']) + (self.season_stats['handballs'])
@@ -237,9 +235,9 @@ class Player:
 
     # check for player injuries depending on age and stamina
     def _injury_check(self):
-        self._injury_likelihood = int(round((101 - self.stamina) * 0.6))
+        self._injury_likelihood = int(round((101 - self.stamina) * 0.4))
         if self.age >= 30:
-            self._injury_likelihood = int(round(self._injury_likelihood * 1.5))
+            self._injury_likelihood = int(round(self._injury_likelihood * 1.2))
 
         # determine whether injury occurs
         _injury_outcome_list = []
@@ -281,21 +279,19 @@ class Player:
             elif self.age >= 30:
                 val_list[0] -= 20
 
-            self.injury = choices(population=attr_list,weights=val_list,k=1)[0]
+            self.injury_duration = choices(population=attr_list,weights=val_list,k=1)[0]
 
     # define how players recover from injury
     def _manage_injury(self):
-        self.injury -= 1
-        self.stamina += 6
+        self.injury_duration -= 1
         self.games_injured += 1
-        if self.injury == 0:
+        if self.stamina <= 94:
+            self.stamina += 6
+        if self.injury_duration == 0:
             self.injured = False
 
 class Team:
     """Team objects are initialized with only the team name"""
-
-    # assign a unique ID to each Team instance
-    team_id = 1
 
     instances = InstanceList()
     ladder = None
@@ -330,6 +326,7 @@ class Team:
         self.draws = 0
         self.premiership_points = 0
         self.games_played = 0
+        self.finals_played = 0
         self.points_for = 0
         self.points_against = 0
         self.percentage = 0
@@ -337,16 +334,16 @@ class Team:
         self.roster_ranking_points = 0
         self.best_22_ranking_points = 0
         self.best_22 = {}
+        self.season_stats = {}
+        self.season_averages = {}
 
-        self.id = Team.team_id
-        Team.team_id += 1
         Team._add_instance(self)
 
     def __repr__(self):
         return self.name
 
     # assign team gameday ranking points based on their 22 highest ranked players
-    def generate_best22(self):
+    def _generate_best22(self):
         gameday_player_ranking_points = {}
         for player in self.roster:
             if player.injured == False:
@@ -354,20 +351,16 @@ class Team:
             else:
                 player._manage_injury()
 
-        # _eligible_players = []
         for player in self.roster:
             if player.injured == False:
-                # _eligible_players.append(player)
-
-                gameday_player_ranking_points[player] = gauss(player.ranking_points, player.ranking_points*.2)
+                gameday_player_ranking_points[player] = round(gauss(player.ranking_points, player.ranking_points*.2),2)
 
         gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1], reverse=True)
         gameday_points_dict = dict(gameday_points_list)
 
         # store teams best22 player and their ranking points in dict
         self.best_22 = dict(heapq.nlargest(22, gameday_points_dict.items(), key=lambda i: i[1]))
-
-        self.train_players()
+        self._train_players()
         return self.best_22
 
     def _adjust_percentage(self):
@@ -386,18 +379,25 @@ class Team:
         self.premiership_points += 2
 
     # define the impacts of training before playing a game that week
-    def train_players(self):
+    def _train_players(self):
         for player in self.best_22:
             if player.stamina >= 70:
                 player._training_status = True
             else:
                 player._training_status = False
 
+    def _season_stats(self):
+        for attr in self.roster[0].season_stats.keys():
+            self.season_stats[attr] = 0
+            self.season_averages[attr] = 0 
+
+    # return season stat averages for team
+    def _season_averages(self):
+        for attr,val in self.season_stats.items():
+            self.season_averages[attr] = round(val / (self.games_played + self.finals_played), 2)
+
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
-
-    # assign a unique ID to each Stadium instance
-    stadium_id = 0
 
     instances = InstanceList()
 
@@ -410,17 +410,15 @@ class Stadium:
 
     def __init__(self, venue, location, capacity, tenants):
         # attributes of a Stadium object
-        self.venue = venue
+        self.name = venue
         self.location = location
         self.capacity = capacity
         self._weather = pd.DataFrame()
-        self.id = Stadium.stadium_id
-        Stadium.stadium_id += 1
         self._assign_home_stadium(tenants)
         Stadium._add_instance(self)
 
     def __repr__(self):
-        return self.venue
+        return self.name
 
     def _assign_home_stadium(self, tenants):
         # associate Stadium objects with Team objects as home_stadium
@@ -432,9 +430,6 @@ class Stadium:
 
 class Game:
     """define the parent Game class that HomeAwayGames and FinalGames will inherit from"""
-    
-    # assign a unique ID to each Game instance
-    game_id = 0
 
     instances = InstanceList()
 
@@ -470,20 +465,13 @@ class Game:
         Final._set_finalists()
         Team._refresh_ladder()
         print('\n\n\n\n')
-        print(color.PURPLE + "###################################################################################################################" + color.END)
-        print("\n",Team.ladder,"\n")
-
-    @classmethod
-    def _play_season(cls):
-        Game._play_homeaway_games()
-        Final._play_final_series()
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print("\n",Team.ladder)
 
     def __init__(self, date, weekday, start_time):
         self.date = pd.to_datetime(date).date()
         self.weekday = weekday
         self.start_time = start_time
-        self.id = Game.game_id
-        Game.game_id += 1
 
         self.home_team = None
         self.away_team = None
@@ -502,6 +490,7 @@ class Game:
 
         self.home_stats = {}
         self.away_stats = {}
+        self.game_stats = {}
 
         self.home_player_stats = None
         self.away_player_stats = None
@@ -526,54 +515,36 @@ class Game:
     def _gen_gameday_stats(self):
         for attr in Game.attribute_constraints.keys():
             self.home_stats[attr] = 0
-
-        for attr in Game.attribute_constraints.keys():
             self.away_stats[attr] = 0
+            self.game_stats[attr] = 0
 
         for player in self.home_22.keys():
             if self.rainfall <= 2:
                 player._jitter_stats(1.05, 0.25)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.home_stats[attr] += val
             elif self.rainfall >= 10:
                 player._jitter_stats(1.05, 0.35, 0.6)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.home_stats[attr] += val
             else:
                 player._jitter_stats(1.05, 0.3, 0.8)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.home_stats[attr] += val
-
-            # if player._training_status == True:
-            #     player._jitter_stats(1.05, 0.0)
-            #     player.stamina -= 2
-            #     for attr,val in player.jittered_stats.items():
-            #         self.home_stats[attr] += val
-            # else:
-            #     player.stamina += 2
 
         for player in self.away_22.keys():
             if self.rainfall <= 2:
                 player._jitter_stats(0.95, 0.25)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.away_stats[attr] += val
             elif self.rainfall >= 10:
                 player._jitter_stats(0.95, 0.35, 0.6)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.away_stats[attr] += val
             else:
                 player._jitter_stats(0.95, 0.3, 0.8)
-                for attr,val in player.jittered_stats.items():
+                for attr,val in player._jittered_stats.items():
                     self.away_stats[attr] += val
-
-            # if player._training_status == True:
-            #     player._jitter_stats(1.05, 0.0)
-            #     player.stamina -= 2
-            #     for attr,val in player.jittered_stats.items():
-            #         self.away_stats[attr] += val
-            # else:
-            #     player.stamina += 2
-
 
         for attr,val in self.home_stats.items():
             self.home_stats[attr] = round(val)
@@ -588,7 +559,7 @@ class Game:
     def _gameday_player_points(self, team):
         player_dict = {}
         for player in team.best_22.keys():
-            player_dict[player] = player.jittered_stats
+            player_dict[player] = player._jittered_stats
 
         player_df = pd.DataFrame((player_dict[i] for i in player_dict), index=player_dict.keys())
 
@@ -599,8 +570,8 @@ class Game:
 
     def _assign_scores(self):
         # generate ranking points for each teams' best 22
-        self.home_22 = self.home_team.generate_best22()
-        self.away_22 = self.away_team.generate_best22()
+        self.home_22 = self.home_team._generate_best22()
+        self.away_22 = self.away_team._generate_best22()
         self._get_ranking_points()
         self._gen_gameday_stats()
         
@@ -621,7 +592,7 @@ class Game:
     def _gen_attendance(self):
         for stad in Stadium.instances:
             if self.stadium == stad:
-                if stad.venue != 'M.C.G.':
+                if stad.name != 'M.C.G.':
                     self.attendance = round(triangular(stad.capacity*self._mcg_lower, stad.capacity, stad.capacity*self._mcg_weight))
                 else:
                     self.attendance = round(triangular(stad.capacity*self._stad_lower, stad.capacity, stad.capacity*self._stad_weight))
@@ -629,6 +600,13 @@ class Game:
     def _gen_stats(self):
         self.home_stats = self.home_player_stats.sum()
         self.away_stats = self.away_player_stats.sum()
+
+        # store gameday stats for the season for each team
+
+        for attr,val in self.home_stats.items():
+            self.home_team.season_stats[attr] += val
+        for attr,val in self.away_stats.items():
+            self.away_team.season_stats[attr] += val
 
         df_home_stats = pd.DataFrame(self.home_stats).rename(columns = {0:self.home_team})
         df_away_stats = pd.DataFrame(self.away_stats).rename(columns = {0:self.away_team})
@@ -779,13 +757,13 @@ class Final(Game):
         Final._play_final_round(1)
         print()
         print()
-        print(color.PURPLE + "###################################################################################################################" + color.END)
+        print(color.DARKCYAN + "###################################################################################################################" + color.END)
         [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 1]
         Final._play_final_round(2)
         [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 2]
         Final._play_final_round(3)
         [print(f'\t\t\t\t\t{final.final_type}: {final.final_score}') for final in Final.instances if final.week_of_finals == 3]
-        print(color.PURPLE + "###################################################################################################################" + color.END)
+        print(color.DARKCYAN + "###################################################################################################################" + color.END)
         Final._play_final_round(4)
         [print(f'\n\n\n\033[1m\t\t\t\t\t{str(final.winner).upper()}\033[0m wins the premiership!\n\t\t\t\t\t({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
         print()
@@ -793,6 +771,8 @@ class Final(Game):
         [print(f'{final.game_stats}') for final in Final.instances if final.week_of_finals == 4]
         print()
         print()
+        for team in Team.instances:
+            team._season_averages()
 
     def __init__(self, final_type, weekday, date, start_time, week_of_finals):
         super().__init__(date, weekday, start_time)
@@ -865,6 +845,8 @@ class Final(Game):
             self.home_score += randint(0,15)
             self.away_score += randint(0,14)
             self._interpret_scores()
+        self.home_team.finals_played += 1
+        self.away_team.finals_played += 1
 
     # defines the methods called when a Final is played:
     def _play_final(self):
