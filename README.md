@@ -8,9 +8,9 @@ The following instances are stored as season attributes:
 (each season attribute can use search() command to see if string in name)
 (eg. season.teams[17].season_stats, season.players.search("Marcus"))
 
-.ladder(round_num)		- prints ladder after specified season
+	.ladder(round_num)		- prints ladder after specified season
 
-.players:
+ .players:
 	.stats() 	- prints season stats
 	.averages()		- prints season averages
 
@@ -20,8 +20,8 @@ The following instances are stored as season attributes:
 	.dob
 	.height
 	.weight
-
 	.attributes
+
 	.season_stats
 	.season_averages
 	.disposals
@@ -53,7 +53,7 @@ The following instances are stored as season attributes:
 	.injured
 	.injury_duration
 
-.teams:
+ .teams:
 	.stats() 	- prints season stats
 	.averages()		- prints season averages
 
@@ -74,7 +74,7 @@ The following instances are stored as season attributes:
 	.season_stats
 	.season_averages
 
-.hagames & .finals:
+ .hagames & .finals:
 	.name
 	.date
 	.weekday
@@ -98,21 +98,21 @@ The following instances are stored as season attributes:
 	.temperature
 	.rainfall
 
-.hagames:
+ .hagames:
 	.round_num
 
-.finals:
+ .finals:
 	.final_type
 	.week_of_finals
 	.winner
 	.loser
 
-.stadiums:
+ .stadiums:
 	.name
 	.location
 	.capacity
 
-.rounds:
+ .rounds:
 	.round_num
 	.games
 
