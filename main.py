@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta
 from time import sleep
-from random import randint, triangular, random, choice, gauss
+from random import randint, triangular, random, choice, choices, gauss
 import heapq
-import os
 
 # build a mechanism for searching through class instances
 class InstanceList(list):
@@ -55,7 +54,7 @@ class Player:
             if team_instance.name == team:
                 self.team = team_instance
                 team_instance.roster.append(self)
-        self.dob = dob
+        self.dob = pd.Timestamp(dob)
         self.height = height
         self.weight = weight
         self.disposals = disposals
@@ -80,6 +79,14 @@ class Player:
         self.one_percenters = one_percenters
         self.bounces = bounces
         self.goal_assists = goal_assists
+        self.games_played = 0
+        self.games_injured = 0
+
+        self.stamina = 100
+        self.injured = False
+        self.injury = 0
+        self._training_status = False
+        self._injury_likelihood = 0
 
         self.ranking_points = round(
             (self.disposals)+
@@ -131,8 +138,13 @@ class Player:
         }
 
         self.jittered_stats = {}
+        self.season_stats = {}
+        self.season_averages = {}
+        for attr,val in self.attributes.items():
+            self.season_stats[attr] = 0
+            self.season_averages[attr] = 0
+            self.jittered_stats[attr] = 0
 
-        self.gameday_stats = {}
         self.id = Player.player_id
         Player.player_id += 1
         Player._add_instance(self)
@@ -181,10 +193,103 @@ class Player:
             self._weight = weight
 
     # randomize player stats using a gaussian distribution
-    def _jitter_stats(self):
-        # if self.age
+    def _jitter_stats(self, val_modifier=float, variability_modifier=float, score_modifier=1.0):
+
+        if self._training_status == True:
+            val_modifier = val_modifier*1.05
+            self.stamina -= 2
+        else:
+            self.stamina += 2
+
         for attr,val in self.attributes.items():
-            self.jittered_stats[attr] = round(gauss(val, val*.35))
+            if attr == 'goals':
+                self.jittered_stats[attr] = round(gauss(val*val_modifier*score_modifier, val*variability_modifier))
+            elif attr == 'behinds':
+                self.jittered_stats[attr] = round(gauss(val*val_modifier*score_modifier, val*variability_modifier))
+            else:
+                self.jittered_stats[attr] = round(gauss(val*val_modifier, val*variability_modifier))
+
+        for attr,val in self.jittered_stats.items():
+            self.season_stats[attr] += val
+
+        self.season_stats['disposals'] = (self.season_stats['kicks']) + (self.season_stats['handballs'])
+
+        self.games_played += 1
+
+    # return season stat averages for player
+    def _season_averages(self):
+        if self.games_played >= 1:
+            for attr,val in self.season_stats.items():
+                self.season_averages[attr] = round(val/self.games_played, 2)
+
+    # add player's age in years based on season being played
+    def _add_age(self, timestamp):
+        self.age = (timestamp.year - self.dob.year)
+
+    # determine how players lose energy over the course of a season
+    def _adjust_stamina(self):
+        if self.age < 20:
+            self.stamina -= 2
+        if self.age < 30:
+            self.stamina -= 1
+        else:
+            self.stamina -= 2.5
+
+    # check for player injuries depending on age and stamina
+    def _injury_check(self):
+        self._injury_likelihood = int(round((101 - self.stamina) * 0.6))
+        if self.age >= 30:
+            self._injury_likelihood = int(round(self._injury_likelihood * 1.5))
+
+        # determine whether injury occurs
+        _injury_outcome_list = []
+        for i in range(100 - self._injury_likelihood):
+            _injury_outcome_list.append(False)
+        for i in range(self._injury_likelihood):
+            _injury_outcome_list.append(True)
+
+        self.injured = choice(_injury_outcome_list)
+
+        # determine extent of injury
+        _injured_games_dict = {
+
+                1 : 40,
+                2 : 20,
+                3 : 10,
+                4 : 8,
+                5 : 6,
+                6 : 4,
+                7 : 4,
+                8 : 3,
+                9 : 3,
+                10 : 3,
+                11 : 3,
+                12 : 3,
+                13 : 3,
+                14 : 3,
+                15 : 3,
+                16 : 3
+
+        }
+
+        attr_list = list(_injured_games_dict.keys())
+        val_list = list(_injured_games_dict.values())
+
+        if self.injured == True:
+            if self.age <= 23:
+                val_list[0] += 40
+            elif self.age >= 30:
+                val_list[0] -= 20
+
+            self.injury = choices(population=attr_list,weights=val_list,k=1)[0]
+
+    # define how players recover from injury
+    def _manage_injury(self):
+        self.injury -= 1
+        self.stamina += 6
+        self.games_injured += 1
+        if self.injury == 0:
+            self.injured = False
 
 class Team:
     """Team objects are initialized with only the team name"""
@@ -244,13 +349,25 @@ class Team:
     def generate_best22(self):
         gameday_player_ranking_points = {}
         for player in self.roster:
-            gameday_player_ranking_points[player] = gauss(player.ranking_points, player.ranking_points*.2)
+            if player.injured == False:
+                player._injury_check()
+            else:
+                player._manage_injury()
+
+        # _eligible_players = []
+        for player in self.roster:
+            if player.injured == False:
+                # _eligible_players.append(player)
+
+                gameday_player_ranking_points[player] = gauss(player.ranking_points, player.ranking_points*.2)
 
         gameday_points_list = sorted(gameday_player_ranking_points.items(), key=lambda x:x[1], reverse=True)
         gameday_points_dict = dict(gameday_points_list)
 
         # store teams best22 player and their ranking points in dict
         self.best_22 = dict(heapq.nlargest(22, gameday_points_dict.items(), key=lambda i: i[1]))
+
+        self.train_players()
         return self.best_22
 
     def _adjust_percentage(self):
@@ -267,6 +384,14 @@ class Team:
     def _draw(self):
         self.draws += 1
         self.premiership_points += 2
+
+    # define the impacts of training before playing a game that week
+    def train_players(self):
+        for player in self.best_22:
+            if player.stamina >= 70:
+                player._training_status = True
+            else:
+                player._training_status = False
 
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
@@ -340,9 +465,11 @@ class Game:
     def _play_homeaway_games(cls):
         for rnd in Round.instances:
             rnd.play_round()
+        for player in Player.instances:
+            player._season_averages()
         Final._set_finalists()
         Team._refresh_ladder()
-        os.system('cls' if os.name == 'nt' else 'clear')
+        print('\n\n\n\n')
         print(color.PURPLE + "###################################################################################################################" + color.END)
         print("\n",Team.ladder,"\n")
 
@@ -404,20 +531,58 @@ class Game:
             self.away_stats[attr] = 0
 
         for player in self.home_22.keys():
-            player._jitter_stats()
-            for attr,val in player.jittered_stats.items():
-                self.home_stats[attr] += val
+            if self.rainfall <= 2:
+                player._jitter_stats(1.05, 0.25)
+                for attr,val in player.jittered_stats.items():
+                    self.home_stats[attr] += val
+            elif self.rainfall >= 10:
+                player._jitter_stats(1.05, 0.35, 0.6)
+                for attr,val in player.jittered_stats.items():
+                    self.home_stats[attr] += val
+            else:
+                player._jitter_stats(1.05, 0.3, 0.8)
+                for attr,val in player.jittered_stats.items():
+                    self.home_stats[attr] += val
+
+            # if player._training_status == True:
+            #     player._jitter_stats(1.05, 0.0)
+            #     player.stamina -= 2
+            #     for attr,val in player.jittered_stats.items():
+            #         self.home_stats[attr] += val
+            # else:
+            #     player.stamina += 2
 
         for player in self.away_22.keys():
-            player._jitter_stats()
-            for attr,val in player.jittered_stats.items():
-                self.away_stats[attr] += val
+            if self.rainfall <= 2:
+                player._jitter_stats(0.95, 0.25)
+                for attr,val in player.jittered_stats.items():
+                    self.away_stats[attr] += val
+            elif self.rainfall >= 10:
+                player._jitter_stats(0.95, 0.35, 0.6)
+                for attr,val in player.jittered_stats.items():
+                    self.away_stats[attr] += val
+            else:
+                player._jitter_stats(0.95, 0.3, 0.8)
+                for attr,val in player.jittered_stats.items():
+                    self.away_stats[attr] += val
+
+            # if player._training_status == True:
+            #     player._jitter_stats(1.05, 0.0)
+            #     player.stamina -= 2
+            #     for attr,val in player.jittered_stats.items():
+            #         self.away_stats[attr] += val
+            # else:
+            #     player.stamina += 2
+
 
         for attr,val in self.home_stats.items():
             self.home_stats[attr] = round(val)
 
         for attr,val in self.away_stats.items():
             self.away_stats[attr] = round(val)
+
+        self.home_score = (self.home_stats['goals']*6) + self.home_stats['behinds']
+        self.away_score = (self.away_stats['goals']*6) + self.away_stats['behinds']
 
     # use player attributes to generate gameday statistics
     def _gameday_player_points(self, team):
@@ -442,26 +607,6 @@ class Game:
         self.away_player_stats = self._gameday_player_points(self.away_team)
         self.home_player_stats = self._gameday_player_points(self.home_team)
         self._gen_stats()
-
-        # assign random integers weighted in the home team's favor
-        if self.rainfall == 0:
-            self.home_score += round(randint(40,120)*(self.homeranking/self.awayranking)*1.1)
-            self.away_score += round(randint(40,120)*(self.awayranking/self.homeranking))
-        elif self.rainfall < 3:
-            self.home_score += round(randint(35,110)*(self.homeranking/self.awayranking)*1.1)
-            self.away_score += round(randint(35,110)*(self.awayranking/self.homeranking))
-        elif self.rainfall < 10:
-            self.home_score += round(randint(30,80)*(self.homeranking/self.awayranking)*1.1)
-            self.away_score += round(randint(30,80)*(self.awayranking/self.homeranking))     
-        else:
-            self.home_score += round(randint(25,60)*(self.homeranking/self.awayranking)*1.1)
-            self.away_score += round(randint(25,60)*(self.awayranking/self.homeranking))  
-
-    def _setup_game(self):
-        # utlize assign_scores() and then update Team attributes depending on outcome
-        self._gen_weather()
-        self._assign_scores()
-        self._gen_attendance()
 
     def _gen_weather(self):
         # generate game weather based on the month the game is played and the location it is played in
@@ -489,6 +634,12 @@ class Game:
         df_away_stats = pd.DataFrame(self.away_stats).rename(columns = {0:self.away_team})
 
         self.game_stats = pd.merge(df_home_stats, df_away_stats, left_index=True, right_index=True)
+
+    def _setup_game(self):
+        # utlize assign_scores() and then update Team attributes depending on outcome
+        self._gen_weather()
+        self._assign_scores()
+        self._gen_attendance()
 
 
 class HomeAwayGame(Game):
@@ -653,7 +804,10 @@ class Final(Game):
 
     def _get_stadium(self):
         # choose the first stadium, the primary, from home_team home_stadiums
-        self.stadium = self.home_team.home_stadium[0]
+        if self.week_of_finals == 4:
+            self.stadium = Stadium.instances[0]
+        else:
+            self.stadium = self.home_team.home_stadium[0]
 
     # assigns teams and stadium to Final objects:
     def _set_teams(self, home_team, away_team):
@@ -709,12 +863,13 @@ class Final(Game):
             self.final_score += f'{self.home_team}: {self.home_score} lost to {str(self.away_team).upper()}: {self.away_score}'
         else:
             self.home_score += randint(0,15)
-            self.away_score += randint(0,15)
+            self.away_score += randint(0,14)
             self._interpret_scores()
 
     # defines the methods called when a Final is played:
     def _play_final(self):
         self._assign_scores()
+        # self._setup_game()
         self._interpret_scores()
 
 class Round:

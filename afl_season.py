@@ -56,7 +56,6 @@ class Season:
                 message4 = '*There were two clear standouts, along with a drug cheat.'
                 message5 = color.BOLD + f'{stats["Brownlow Medal"][0]}' + color.END + ' and ' + color.BOLD + f'{stats["Brownlow Medal"][1]}' + color.END +  ' were both outstanding, and joint Brownlow Medal winners'
                 message6 = '*Individually, ' + color.BOLD + f'{stats["Brownlow Medal"]}' + color.END + ' was outstanding, winning the Brownlow Medal'
-                message7 = color.YELLOW + f"...Simulating the magnificent Season {season}..." + color.END
                 print(color.BLUE + "###################################################################################################################" + color.END)
                 print(color.BLUE + "###################################################################################################################" + color.END)
                 print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
@@ -80,16 +79,14 @@ class Season:
                 if type(stats["Brownlow Medal"]) == list:
                     print(message4)
                     print(message5)
-                    print(color.GREEN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
-
                 else:
                     print(message6)
-                    print(color.GREEN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
 
+        message7 = color.YELLOW + f"...Simulating the magnificent Season {season}..." + color.END
         print()
-        print(message7)
-
-
+        print(color.CYAN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
+        print(f'\t\t\t\t\t{message7}')
+        print(color.CYAN + "-------------------------------------------------------------------------------------------------------------------" + color.END)
 
     @classmethod
     def _format_df(cls, df):
@@ -135,7 +132,7 @@ class Season:
         self.finals = Final.instances
         self.players = Player.instances
         self.rounds = Round.instances
-
+        self.tmstmp = pd.Timestamp(f'{year}-04-01')
         Season._welcome_message(self.year)
 
         if self.year in [2012,2013,2014,2015,2016,2017,2018,2019,2020]:
@@ -163,13 +160,13 @@ class Season:
         teams = pd.pivot_table(self._data, values=[
         # isolate players from each team    
 
-            'DOB', 'Height', 'Weight', 'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
+            'Height', 'Weight', 'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
             'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
             'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
             'Contested_Possessions', 'Uncontested_Possessions', 'Contested_Marks',
             'Marks_Inside_50', 'One_Percenters', 'Bounces', 'Goal_Assists'
 
-            ], index=['Team', 'Player', 'First_Name', 'Last_Name'])\
+            ], index=['Team', 'Player', 'First_Name', 'Last_Name', 'DOB'])\
                 .reset_index()\
                 .reindex(columns=[
                         
@@ -219,11 +216,11 @@ class Season:
             'Contested_Possessions', 'Uncontested_Possessions', 'Contested_Marks',
             'Marks_Inside_50', 'One_Percenters', 'Bounces', 'Goal_Assists'
 
-            ], index=['Team', 'Player', 'First_Name', 'Last_Name'])\
+            ], index=['Team', 'Player', 'First_Name', 'Last_Name', 'DOB'])\
                 .reset_index()\
                 .reindex(columns=[
                         
-            'Player', 'First_Name', 'Last_Name', 'Team', 'Height', 'Weight', 
+            'Player', 'First_Name', 'Last_Name', 'Team', 'DOB', 'Height', 'Weight', 
             'Disposals', 'Kicks', 'Marks', 'Handballs', 'Goals',
             'Behinds', 'Hit_Outs', 'Tackles', 'Rebounds', 'Inside_50s',
             'Clearances', 'Clangers', 'Frees', 'Frees_Against', 'Brownlow_Votes',
@@ -269,28 +266,28 @@ class Season:
         'Sunday' : ['1:10pm','3:20pm','5:10pm']
         }
 
-        tmstmp = pd.Timestamp(f'{year}-04-01')
+        # tmstmp = pd.Timestamp(f'{year}-04-01')
 
         counter=1
         while counter <= 23:
 
             df = self._matches[counter]
-            while tmstmp.strftime('%A') != 'Thursday':
-                tmstmp += pd.Timedelta(1, 'day')
+            while self.tmstmp.strftime('%A') != 'Thursday':
+                self.tmstmp += pd.Timedelta(1, 'day')
 
             if counter in [12,13,14]:
                 for day,times in timeslots.items():
                     if day == 'Friday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times)
-                        tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self.tmstmp.strftime('%A'), times)
+                        self.tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], tmstmp.strftime('%A'), times[2])
-                        tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self.tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self.tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self.tmstmp.strftime('%A'), times[2])
+                        self.tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self.tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self.tmstmp.strftime('%A'), times[2])
 
 
                 counter += 1
@@ -299,21 +296,21 @@ class Season:
             else:
                 for day,times in timeslots.items():
                     if day == 'Thursday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], tmstmp.strftime('%A'), times)
-                        tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[0], df.away_team[0], self.tmstmp.strftime('%A'), times)
+                        self.tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Friday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], tmstmp.strftime('%A'), times)
-                        tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[1], df.away_team[1], self.tmstmp.strftime('%A'), times)
+                        self.tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Saturday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], tmstmp.strftime('%A'), times[2])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], tmstmp.strftime('%A'), times[3])
-                        tmstmp += pd.Timedelta(1, 'day')
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[2], df.away_team[2], self.tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[3], df.away_team[3], self.tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[4], df.away_team[4], self.tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[5], df.away_team[5], self.tmstmp.strftime('%A'), times[3])
+                        self.tmstmp += pd.Timedelta(1, 'day')
                     elif day == 'Sunday':
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[6], df.away_team[6], tmstmp.strftime('%A'), times[0])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], tmstmp.strftime('%A'), times[1])
-                        HomeAwayGame(tmstmp, df.round_num[0], df.home_team[8], df.away_team[8], tmstmp.strftime('%A'), times[2])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[6], df.away_team[6], self.tmstmp.strftime('%A'), times[0])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[7], df.away_team[7], self.tmstmp.strftime('%A'), times[1])
+                        HomeAwayGame(self.tmstmp, df.round_num[0], df.home_team[8], df.away_team[8], self.tmstmp.strftime('%A'), times[2])
 
             counter += 1
 
@@ -391,6 +388,8 @@ class Season:
         # build players using the Player_class 
         for row in df.values:
             Player(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16], row[17], row[18], row[19], row[20], row[21], row[22], row[23], row[24], row[25], row[26], row[27], row[28])
+        for player in Player.instances:
+            player._add_age(self.tmstmp)
 
     def _gen_Teams(self, df):    
         # build teams using the Team_class
@@ -433,3 +432,12 @@ class Season:
 knownyears = [2012,2013,2014,2015,2016,2017,2018,2019,2020]
 season2020 = Season(choice(knownyears))
 season2020.play_season()
+
+for player in season2020.players:
+    if player.first_name == 'Marcus':
+        print(f'{player}: {player.season_stats}\n{player.season_averages}\n\n\n{player.age}\n\n\n{player.stamina}')
+        print(f'{player}: {player._injury_likelihood} {player.injured} {player.injury} games played: {player.games_played} games injured: {player.games_injured}')
+
+# for player in season2020.players:
+#     if player.injured == True:
+#         print(f'{player}: {player._injury_likelihood} {player.injured} {player.injury} games played: {player.games_played} games injured: {player.games_injured}')
