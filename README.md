@@ -10,9 +10,9 @@ The following instances are stored as season attributes:
 
 season.ladder(round_num) - prints ladder after specified season
 
-season.players
-stats() - prints season stats
-averages() - prints season averages
+[season.players]:
+stats()
+averages()
 name
 first_name
 last_name
@@ -50,9 +50,9 @@ stamina
 injured
 injury_duration
 
-season.teams
-stats() - prints season stats
-averages() - prints season averages
+[season.teams]:
+stats()
+averages()
 name
 roster
 wins
@@ -70,7 +70,7 @@ best_22_ranking_points
 season_stats
 season_averages
 
-season.hagames & season.finals
+[season.hagames & season.finals]:
 name
 date
 weekday
@@ -94,21 +94,21 @@ away_player_stats
 temperature
 rainfall
 
-season.hagames
+[season.hagames]:
 round_num
 
-season.finals
+[season.finals]:
 final_type
 week_of_finals
 winner
 loser
 
-season.stadiums
+[season.stadiums]:
 name
 location
 capacity
 
-season.rounds
+[season.rounds]:
 round_num
 games
 
