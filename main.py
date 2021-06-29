@@ -797,6 +797,7 @@ class Final(Game):
         [print(f'\n\n\n\033[1m\t\t\t\t\t{str(final.winner).upper()}\033[0m wins the premiership!\n\t\t\t\t\t({final.final_score})') for final in Final.instances if final.week_of_finals == 4]
         print()
         print()
+        print(color.BOLD + f'\t\tGRAND FINAL STATS' + color.END)
         [print(f'{final.game_stats}') for final in Final.instances if final.week_of_finals == 4]
         print()
         print()
