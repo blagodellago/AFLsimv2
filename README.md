@@ -12,6 +12,8 @@ The following instances are stored as season attributes:
 
 season.ladder(round_num) - prints ladder after specified season
 
+season.brownlow_medal() - simulates the league best and fairest award
+
 season.players:  stats()  averages()  name  first_name  last_name  dob  height  weight  attributes  season_stats  season_averages  disposals  kicks  marks  handballs  goals  behinds  hit_outs  tackles  rebounds  inside_50s  clearances  clangers  frees_for  frees_against  brownlow_votes  contested_poss  uncontested_poss  contested_marks  marks_inside_50  one_percenters  bounces  goal_assists  games_played  games_injured  stamina  injured  injury_duration
 
 season.teams:  stats()  averages()  name  roster  wins  losses  draws  premiership_points  games_played  finals_played  points_for  points_against  percentage  home_stadium  roster_ranking_points  best_22_ranking_points  season_stats  season_averages

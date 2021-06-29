@@ -17,7 +17,7 @@ class InstanceList(list):
         else:
             return matches
 
-
+# define colors to be used with text
 class color:
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
@@ -30,11 +30,9 @@ class color:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
-
 class Player:
     """Initialize a Player object with 'name' the only required parameter"""
 
-    # class attributes:
     instances = InstanceList()
 
     # add players to Player.instances:
@@ -44,6 +42,19 @@ class Player:
             cls.instances.append(player)
         else:
             pass
+
+    # determine the best players over the season and award the Brownlow Medal
+    @classmethod
+    def _brownlow_medal(cls):
+        brownlow_medal = pd.DataFrame({color.BOLD + 'BROWNLOW TOP 10' + color.END : player, ' ' : player.team, '' : player.season_ranking_points} for player in Player.instances).nlargest(10, '').set_index(color.BOLD + 'BROWNLOW TOP 10' + color.END)
+        print(color.BLUE + "\n\n\n###################################################################################################################" + color.END)
+        print(color.BOLD + f'\t\t\t\t{brownlow_medal.iloc[0].name}' + color.END + ' wins the Brownlow Medal after a superb year')
+        print(color.BLUE + "###################################################################################################################" + color.END)
+        print(f'\n\n{brownlow_medal}\n\n\n\n')
+        for player in Player.instances:
+            if player == brownlow_medal.iloc[0].name:
+                print(color.BOLD + str(player).upper() + color.END)
+                player.averages()
 
     # when initializing Player objects they hold 12 attributes:
     def __init__(self, name, first_name=None, last_name=None, team=None, dob=None, height=None, weight=None, disposals=None, kicks=None, marks=None, handballs=None, goals=None, behinds=None, hit_outs=None, tackles=None, rebounds=None, inside_50s=None, clearances=None, clangers=None, frees_for=None, frees_against=None, brownlow_votes=None, contested_poss=None, uncontested_poss=None, contested_marks=None, marks_inside_50=None, one_percenters=None, bounces=None, goal_assists=None):
@@ -88,59 +99,47 @@ class Player:
         self._training_status = False
         self._injury_likelihood = 0
 
-        self.ranking_points = round(
-            (self.disposals)+
-            (self.kicks*2)+
-            (self.marks*3)+
-            (self.handballs)+
-            (self.goals*10)+
-            (self.behinds*3)+
-            (self.hit_outs*3)+
-            (self.tackles*5)+
-            (self.rebounds*3)+
-            (self.inside_50s*4)+
-            (self.clearances*6)-
-            (self.clangers*4)+
-            (self.frees_for*4)-
-            (self.frees_against*5)+
-            (self.contested_poss*4)+
-            (self.uncontested_poss)+
-            (self.contested_marks*8)+
-            (self.marks_inside_50*6)+
-            (self.one_percenters*3)+
-            (self.bounces*2)+
-            (self.goal_assists*8)
-        )
-
-        self.team.roster_ranking_points += self.ranking_points
-
         self.attributes = {
-                    'kicks' : self.kicks,
-                    'marks' : self.marks,
-                    'handballs' : self.handballs,
-                    'goals' : self.goals,
-                    'behinds' : self.behinds,
-                    'hit_outs' : self.hit_outs,
-                    'tackles' : self.tackles,
-                    'rebounds' : self.rebounds,
-                    'inside_50s' : self.inside_50s,
-                    'clearances' : self.clearances,
-                    'clangers' : self.clangers,
-                    'frees_for' : self.frees_for,
-                    'frees_against' : self.frees_against,
-                    'contested_poss' : self.contested_poss,
-                    'uncontested_poss' : self.uncontested_poss,
-                    'contested_marks' : self.contested_marks,
-                    'marks_inside_50' : self.marks_inside_50,
-                    'one_percenters' : self.one_percenters,
-                    'bounces' : self.bounces,
-                    'goal_assists' : self.goal_assists
+                    'kicks' : [self.kicks,2],
+                    'marks' : [self.marks,3],
+                    'handballs' : [self.handballs,1],
+                    'goals' : [self.goals,10],
+                    'behinds' : [self.behinds,3],
+                    'hit_outs' : [self.hit_outs,2],
+                    'tackles' : [self.tackles,5],
+                    'rebounds' : [self.rebounds,3],
+                    'inside_50s' : [self.inside_50s,4],
+                    'clearances' : [self.clearances,6],
+                    'clangers' : [self.clangers,4],
+                    'frees_for' : [self.frees_for,4],
+                    'frees_against' : [self.frees_against,5],
+                    'contested_poss' : [self.contested_poss,4],
+                    'uncontested_poss' : [self.uncontested_poss,1],
+                    'contested_marks' : [self.contested_marks,8],
+                    'marks_inside_50' : [self.marks_inside_50,6],
+                    'one_percenters' : [self.one_percenters,3],
+                    'bounces' : [self.bounces,2],
+                    'goal_assists' : [self.goal_assists,8]
         }
+
+        # define how ranking points are calculated
+        self.ranking_points = 0
+        for val in self.attributes.values():
+            if val[0] == self.clangers:
+                self.ranking_points -= (val[0] * val[1])
+            elif val[0] == self.frees_against:
+                self.ranking_points -= (val[0] * val[1])
+            else:
+                self.ranking_points += (val[0] * val[1])
+        self.ranking_points += (self.kicks + self.handballs)
+        self.ranking_points = round(self.ranking_points)
+        self.team.roster_ranking_points += self.ranking_points
 
         self._jittered_stats = {}
         self.season_stats = {}
         self.season_averages = {}
-        for attr,val in self.attributes.items():
+        self.season_ranking_points = 0
+        for attr in self.attributes.keys():
             self.season_stats[attr] = 0
             self.season_averages[attr] = 0
             self._jittered_stats[attr] = 0
@@ -201,11 +200,17 @@ class Player:
 
         for attr,val in self.attributes.items():
             if attr == 'goals':
-                self._jittered_stats[attr] = round((val + gauss(val*val_modifier*score_modifier, val*variability_modifier)) / 2)
+                goal_val = round((val[0] + gauss(val[0]*val_modifier*score_modifier, val[0]*variability_modifier)) / 2)
+                self._jittered_stats[attr] = goal_val
+                self.season_ranking_points += goal_val
             elif attr == 'behinds':
-                self._jittered_stats[attr] = round((val + gauss(val*val_modifier*score_modifier, val*variability_modifier)) / 2)
+                behind_val = round((val[0] + gauss(val[0]*val_modifier*score_modifier, val[0]*variability_modifier)) / 2)
+                self._jittered_stats[attr] = behind_val
+                self.season_ranking_points += behind_val
             else:
-                self._jittered_stats[attr] = round((val + gauss(val*val_modifier, val*variability_modifier)) / 2)
+                other_val = round((val[0] + gauss(val[0]*val_modifier, val[0]*variability_modifier)) / 2)
+                self._jittered_stats[attr] = other_val
+                self.season_ranking_points += other_val
 
         for attr,val in self._jittered_stats.items():
             self.season_stats[attr] += val
@@ -346,6 +351,7 @@ class Team:
         self.best_22 = {}
         self.season_stats = {}
         self.season_averages = {}
+        self.best_and_fairest = None
 
         Team._add_instance(self)
 
@@ -415,6 +421,10 @@ class Team:
     def averages(self):
         self.season_averages = pd.DataFrame({"--------------" : self.season_averages.keys(), "season_totals" : self.season_averages.values()}).set_index("--------------")
         print(self.season_averages)
+
+    # return the top 10 best performed players for team
+    def _best_and_fairest(self):
+        self.best_and_fairest = pd.DataFrame({str(self).upper() : player, '' : player.season_ranking_points} for player in self.roster).nlargest(10, '').set_index(str(self).upper())
 
 class Stadium:
     """Stadium object initialized with venue, location, capacity, and tenants"""
@@ -487,6 +497,8 @@ class Game:
         print('\n\n\n\n')
         print(color.BLUE + "###################################################################################################################" + color.END)
         print("\n",Team.ladder)
+        for team in Team.instances:
+            team._best_and_fairest()
 
     def __init__(self, date, weekday, start_time):
         self.date = pd.to_datetime(date).date()

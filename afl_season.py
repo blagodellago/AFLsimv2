@@ -106,7 +106,6 @@ class Season:
         print(color.BLUE + "####" + color.END + color.RED + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
         print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
         print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
-        print(color.BLUE + "####" + color.END + color.BOLD + "##########################################################################################################" + color.END + color.BLUE + "#####" + color.END)
         print(color.BLUE + "###################################################################################################################" + color.END)
         print(color.BLUE + "###################################################################################################################" + color.END)
         print()
@@ -375,6 +374,10 @@ class Season:
                     ven._weather = pd.read_html(url, parse_dates=True, skiprows=1, index_col=0, header=0)[0]\
                                     .rename(weather_mapper, axis=1)\
                                     .reindex(columns=['Ann',1,2,3,4,5,6,7,8,9,10,11,12])
+
+    # return the winner and top 10 of the brownlow medal
+    def brownlow_medal(self):
+        Player._brownlow_medal()
 
     def _gen_Players(self, df):   
         # build players using the Player_class 
